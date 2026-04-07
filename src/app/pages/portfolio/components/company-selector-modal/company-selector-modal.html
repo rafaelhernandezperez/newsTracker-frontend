@@ -1,0 +1,41 @@
+<div class="overlay" (click)="close.emit()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2>Seleccionar compañías</h2>
+        <p>Elige una o varias empresas para añadir al portfolio.</p>
+      </div>
+
+      <button class="close-btn" (click)="close.emit()">×</button>
+    </div>
+
+    <input
+      type="text"
+      [(ngModel)]="search"
+      placeholder="Buscar por nombre o ticker"
+      class="search-input"
+    />
+
+    <div class="company-list">
+      @for (company of filteredCompanies; track company.symbol) {
+        <label class="company-item">
+          <div>
+            <strong>{{ company.symbol }}</strong>
+            <span>{{ company.name }}</span>
+          </div>
+
+          <input
+            type="checkbox"
+            [checked]="isChecked(company)"
+            (change)="toggleCompany(company)"
+          />
+        </label>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button class="secondary" (click)="close.emit()">Cancelar</button>
+      <button class="primary" (click)="save()">Guardar selección</button>
+    </div>
+  </div>
+</div>

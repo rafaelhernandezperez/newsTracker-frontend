@@ -1,0 +1,23 @@
+:host {
+  display: block;
+}
+
+.detail-page {
+  min-height: 100vh;
+  padding: 48px 56px;
+  background: #efefed;
+  color: #111111;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  color: #4d4d4d;
+  text-decoration: none;
+}
+
+.detail-page h1 {
+  margin: 0;
+  font-size: 48px;
+  letter-spacing: -0.8px;
+}

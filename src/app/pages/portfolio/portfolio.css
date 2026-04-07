@@ -1,0 +1,186 @@
+:host {
+  display: block;
+}
+
+.portfolio-page {
+  min-height: 100vh;
+  background: #efefed;
+  padding: 48px 56px 72px;
+  color: #ffffff;
+}
+
+.hero {
+  margin-bottom: 28px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: #ffffff;
+}
+
+.hero p {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 16px;
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.company-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) 1fr;
+  align-items: stretch;
+  min-height: 168px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(191, 191, 191, 0.75);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+
+.company-visual {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.2), transparent 55%),
+    rgba(215, 215, 215, 0.58);
+}
+
+.company-visual span {
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 0.9;
+  letter-spacing: -2px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 24px 18px;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.company-date {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 12px;
+}
+
+.card-copy {
+  margin-left: auto;
+  max-width: 440px;
+  text-align: right;
+}
+
+.card-copy h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.card-copy p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.more-link {
+  margin-left: auto;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.remove-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 22px;
+}
+
+.add-card {
+  width: 100%;
+  min-height: 106px;
+  border-radius: 22px;
+  border: none;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  background: rgba(191, 191, 191, 0.75);
+  cursor: pointer;
+  transition: 0.2s ease;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+}
+
+.add-card:hover {
+  transform: translateY(-2px);
+  background: rgba(183, 183, 183, 0.84);
+}
+
+.add-card span {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  background: rgba(255, 255, 255, 0.34);
+  color: #ffffff;
+}
+
+.add-card p {
+  margin: 0;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+@media (max-width: 760px) {
+  .portfolio-page {
+    padding: 32px 20px 48px;
+  }
+
+  .hero h1 {
+    font-size: 42px;
+  }
+
+  .company-card {
+    grid-template-columns: 1fr;
+  }
+
+  .company-visual {
+    min-height: 120px;
+  }
+
+  .card-copy {
+    margin-left: 0;
+    max-width: none;
+    text-align: left;
+  }
+
+  .more-link {
+    margin-left: 0;
+  }
+}

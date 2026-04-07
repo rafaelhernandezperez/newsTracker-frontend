@@ -1,0 +1,46 @@
+<div class="portfolio-page">
+  <header class="hero">
+    <h1>My portfolio</h1>
+    <p>Selecciona las companias que quieres seguir.</p>
+  </header>
+
+  <section class="cards-list">
+    @for (company of selectedCompanies; track company.symbol) {
+      <article class="company-card">
+        <div class="company-visual" aria-hidden="true">
+          <span>{{ company.symbol }}</span>
+        </div>
+
+        <div class="card-content">
+          <div class="card-meta">
+            <p class="company-date">{{ company.publishedAt }}</p>
+            <button class="remove-btn" (click)="removeCompany(company.symbol)" aria-label="Eliminar empresa">
+              ×
+            </button>
+          </div>
+
+          <div class="card-copy">
+            <h2>{{ company.name }}</h2>
+            <p>{{ company.summary }}</p>
+          </div>
+
+          <a class="more-link" [routerLink]="['/portfolio', company.symbol]">Ver más</a>
+        </div>
+      </article>
+    }
+
+    <button class="add-card" (click)="openModal()">
+      <span>+</span>
+      <p>Anadir compania</p>
+    </button>
+  </section>
+
+  @if (isModalOpen) {
+    <app-company-selector-modal
+      [companies]="availableCompanies"
+      [selectedCompanies]="selectedCompanies"
+      (close)="closeModal()"
+      (saveSelection)="addCompanies($event)"
+    />
+  }
+</div>
