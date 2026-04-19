@@ -1,68 +1,272 @@
-<main class="min-h-screen bg-slate-950 text-slate-100">
-  <div class="grid min-h-screen lg:grid-cols-2">
-    <section class="relative hidden overflow-hidden bg-slate-900 lg:block">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.28),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(34,197,94,0.22),_transparent_30%)]"></div>
-      <div class="relative flex h-full flex-col justify-between p-12">
-        <div>
-          <p class="text-sm font-medium uppercase tracking-[0.3em] text-cyan-300">NewsTracker</p>
-          <h1 class="mt-6 max-w-md text-5xl font-semibold leading-tight text-white">
-            Sigue la actualidad sin perderte entre el ruido.
-          </h1>
-          <p class="mt-6 max-w-lg text-lg leading-8 text-slate-300">
-            Centraliza tus fuentes, guarda tus temas y recibe un resumen claro de lo que importa.
-          </p>
-        </div>
+<main class="login-shell min-h-screen overflow-hidden bg-[#050505] text-stone-100">
+  <div class="background-paths pointer-events-none absolute inset-0 overflow-hidden">
+    <svg class="path-layer path-layer-top" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+      <g class="path-group path-group-primary">
+        <path class="flow-line" d="M-140 120 C 120 170, 360 230, 700 285 S 1180 400, 1540 520" />
+        <path class="flow-line" d="M-160 160 C 110 205, 345 255, 675 315 S 1160 430, 1520 560" />
+        <path class="flow-line" d="M-180 200 C 90 240, 330 290, 650 345 S 1130 470, 1490 600" />
+        <path class="flow-line" d="M-200 240 C 70 275, 300 325, 620 380 S 1090 520, 1450 640" />
+        <path class="flow-line" d="M-220 280 C 50 315, 280 365, 600 420 S 1060 560, 1420 680" />
+        <path class="flow-line" d="M-240 320 C 40 350, 260 400, 575 455 S 1020 610, 1390 730" />
+      </g>
+      <g class="path-group path-group-secondary">
+        <path class="flow-line faint-line" d="M20 210 C 250 250, 470 300, 760 350 S 1180 455, 1470 595" />
+        <path class="flow-line faint-line" d="M0 250 C 220 290, 445 335, 730 390 S 1140 500, 1440 635" />
+        <path class="flow-line faint-line" d="M-20 295 C 205 330, 420 375, 700 430 S 1100 555, 1410 675" />
+      </g>
+    </svg>
 
-        <div class="max-w-md rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-          <p class="text-sm text-slate-300">
-            "Tu panel para seguir noticias en tiempo real y organizar lo relevante en un solo sitio."
-          </p>
-        </div>
+    <svg class="path-layer path-layer-bottom" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+      <g class="path-group path-group-tertiary">
+        <path class="flow-line soft-line" d="M-220 360 C 40 420, 210 560, 360 760 S 620 1100, 820 1360" />
+        <path class="flow-line soft-line" d="M-180 330 C 70 395, 235 525, 390 725 S 660 1050, 860 1310" />
+        <path class="flow-line soft-line" d="M-140 300 C 95 370, 260 495, 420 690 S 700 1000, 900 1270" />
+        <path class="flow-line soft-line" d="M-100 270 C 125 345, 285 470, 445 655 S 735 955, 935 1230" />
+        <path class="flow-line soft-line" d="M-60 245 C 155 320, 315 440, 475 625 S 770 915, 970 1200" />
+        <path class="flow-line soft-line" d="M-20 225 C 185 295, 345 410, 510 600 S 810 885, 1010 1170" />
+      </g>
+      <g class="path-group path-group-quaternary">
+        <path class="flow-line faint-line" d="M40 285 C 240 355, 390 465, 555 650 S 860 905, 1080 1190" />
+        <path class="flow-line faint-line" d="M85 255 C 275 325, 425 435, 595 620 S 900 875, 1120 1155" />
+        <path class="flow-line faint-line" d="M130 230 C 315 300, 465 405, 635 590 S 940 845, 1160 1125" />
+      </g>
+    </svg>
+
+    <div class="vignette"></div>
+  </div>
+
+  @if (screen === 'welcome') {
+    <section class="relative flex min-h-screen items-center justify-center px-6 py-12 sm:px-10">
+      <div class="relative z-10 flex w-full max-w-5xl flex-col items-center text-center">
+        <p class="text-xs font-medium uppercase tracking-[0.45em] text-white/45">NewsTracker</p>
+        <h1 class="mt-6 text-6xl font-semibold tracking-[-0.06em] text-white sm:text-7xl lg:text-8xl">
+          Background Paths
+        </h1>
+        <p class="mt-6 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
+          A quieter way to shape your news feed before you enter the dashboard.
+        </p>
+
+        <button
+          type="button"
+          (click)="startFlow()"
+          class="mt-10 inline-flex items-center gap-3 rounded-full border border-white/15 bg-black/60 px-7 py-3 text-base font-semibold text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] transition hover:border-white/25 hover:bg-black/80"
+        >
+          Discover your flow
+          <span aria-hidden="true" class="text-lg leading-none">→</span>
+        </button>
       </div>
     </section>
+  } @else if (screen === 'auth') {
+    <section class="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
+      <div
+        class="relative z-10 w-full max-w-[25rem] rounded-[2rem] border border-white/12 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-8"
+      >
+        <div class="mx-auto flex w-full max-w-fit rounded-full border border-white/10 bg-white/[0.03] p-1">
+          <button
+            type="button"
+            (click)="setAuthMode('login')"
+            class="rounded-full px-4 py-2 text-sm font-medium transition"
+            [ngClass]="authMode === 'login' ? 'bg-white text-[#171717]' : 'text-white/60 hover:text-white'"
+          >
+            Log in
+          </button>
+          <button
+            type="button"
+            (click)="setAuthMode('register')"
+            class="rounded-full px-4 py-2 text-sm font-medium transition"
+            [ngClass]="authMode === 'register' ? 'bg-white text-[#171717]' : 'text-white/60 hover:text-white'"
+          >
+            Register
+          </button>
+        </div>
 
-    <section class="flex items-center justify-center px-6 py-10 sm:px-10">
-      <div class="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl shadow-cyan-950/30 backdrop-blur">
-        <div>
-          <p class="text-sm font-medium uppercase tracking-[0.3em] text-cyan-300">Acceso</p>
-          <h2 class="mt-4 text-3xl font-semibold text-white">Inicia sesión</h2>
-          <p class="mt-3 text-sm leading-6 text-slate-400">
-            Entra a tu cuenta para continuar con tu seguimiento de noticias.
+        <div class="text-center">
+          <p class="text-xs font-medium uppercase tracking-[0.38em] text-white/35">Account</p>
+          <h2 class="mt-5 text-[2rem] font-semibold tracking-[-0.05em] text-white">
+            {{ authMode === 'login' ? 'Log in to your account' : 'Create your account' }}
+          </h2>
+          <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/55">
+            {{
+              authMode === 'login'
+                ? 'Sign in first, then we’ll help you choose the companies and topics you want to follow.'
+                : 'Set up your account first, then personalize the companies and topics you want to follow.'
+            }}
           </p>
         </div>
 
-        <form class="mt-8 space-y-5">
+        <form class="mt-8 space-y-4" (submit)="$event.preventDefault(); enterWizard()">
+          @if (authMode === 'register') {
+            <label class="block">
+              <span class="mb-2 block text-sm font-medium text-white/70">Full name</span>
+              <input
+                type="text"
+                placeholder="Your name"
+                class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-white/25"
+              />
+            </label>
+          }
+
           <label class="block">
-            <span class="mb-2 block text-sm font-medium text-slate-200">Correo electrónico</span>
+            <span class="mb-2 block text-sm font-medium text-white/70">Email</span>
             <input
               type="email"
-              placeholder="tu@email.com"
-              class="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-cyan-400"
+              placeholder="name@email.com"
+              class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-white/25"
             />
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-medium text-slate-200">Contraseña</span>
+            <span class="mb-2 block text-sm font-medium text-white/70">Password</span>
             <input
               type="password"
               placeholder="••••••••"
-              class="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-cyan-400"
+              class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-white/25"
             />
           </label>
 
+          @if (authMode === 'register') {
+            <label class="block">
+              <span class="mb-2 block text-sm font-medium text-white/70">Confirm password</span>
+              <input
+                type="password"
+                placeholder="••••••••"
+                class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-white/25"
+              />
+            </label>
+          }
+
           <button
             type="submit"
-            class="w-full rounded-2xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300"
+            class="mt-3 w-full rounded-2xl border border-white/18 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.1]"
           >
-            Entrar
+            {{ authMode === 'login' ? 'Continue' : 'Create account' }}
           </button>
         </form>
 
-        <p class="mt-6 text-center text-sm text-slate-400">
-          ¿No tienes cuenta?
-          <a href="#" class="font-medium text-cyan-300 hover:text-cyan-200">Solicita acceso</a>
+        <p class="mt-5 text-center text-sm text-white/45">
+          {{
+            authMode === 'login'
+              ? 'First time here?'
+              : 'Already have an account?'
+          }}
+          <button
+            type="button"
+            class="ml-1 font-medium text-white/80 transition hover:text-white"
+            (click)="setAuthMode(authMode === 'login' ? 'register' : 'login')"
+          >
+            {{ authMode === 'login' ? 'Register' : 'Log in' }}
+          </button>
         </p>
+
+        <button
+          type="button"
+          (click)="goBack()"
+          class="mt-4 w-full rounded-2xl border border-transparent px-4 py-3 text-sm font-medium text-white/55 transition hover:text-white/80"
+        >
+          Back
+        </button>
       </div>
     </section>
-  </div>
+  } @else {
+    <section class="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
+      <div
+        class="relative z-10 w-full max-w-[26rem] rounded-[2rem] border border-white/12 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-8"
+      >
+        <div class="flex justify-center gap-2">
+          @for (step of steps; track step.key; let index = $index) {
+            <span
+              class="h-2.5 w-2.5 rounded-full transition"
+              [ngClass]="index === currentStep ? 'bg-white' : 'bg-white/30'"
+            ></span>
+          }
+        </div>
+
+        <div class="mt-8 text-center">
+          <p class="text-sm text-white/45">{{ activeStep.eyebrow }}</p>
+          <h2 class="mt-4 text-[1.9rem] font-semibold tracking-[-0.04em] text-white">{{ activeStep.title }}</h2>
+          <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/60">{{ activeStep.description }}</p>
+        </div>
+
+        @if (activeStep.key === 'tickers') {
+          <div class="mt-8 flex flex-wrap justify-center gap-3">
+            @for (option of tickerOptions; track option) {
+              <button
+                type="button"
+                (click)="toggleTicker(option)"
+                class="rounded-full border px-5 py-2 text-sm font-medium transition"
+                [ngClass]="
+                  isTickerSelected(option)
+                    ? 'border-white bg-white text-[#1b1b1b]'
+                    : 'border-white/14 bg-transparent text-white/75'
+                "
+              >
+                {{ option }}
+              </button>
+            }
+          </div>
+        }
+
+        @if (activeStep.key === 'topics') {
+          <div class="mt-8 flex flex-wrap justify-center gap-3">
+            @for (option of topicOptions; track option) {
+              <button
+                type="button"
+                (click)="toggleTopic(option)"
+                class="rounded-full border px-5 py-2 text-sm font-medium transition"
+                [ngClass]="
+                  isTopicSelected(option)
+                    ? 'border-white bg-white text-[#1b1b1b]'
+                    : 'border-white/14 bg-transparent text-white/75'
+                "
+              >
+                {{ option }}
+              </button>
+            }
+          </div>
+        }
+
+        @if (activeStep.key === 'alerts') {
+          <div class="mt-8 space-y-3">
+            @for (preference of alertPreferences; track preference.id) {
+              <button
+                type="button"
+                (click)="toggleAlert(preference.id)"
+                class="flex w-full items-center justify-between gap-4 border-b border-white/10 py-3 text-left last:border-b-0"
+              >
+                <span class="text-sm font-medium text-white/90">{{ preference.label }}</span>
+                <span
+                  class="relative inline-flex h-6 w-11 rounded-full transition"
+                  [ngClass]="preference.enabled ? 'bg-[#4d9fff]' : 'bg-white/20'"
+                >
+                  <span
+                    class="absolute top-1 h-4 w-4 rounded-full bg-white transition"
+                    [class.left-6]="preference.enabled"
+                    [class.left-1]="!preference.enabled"
+                  ></span>
+                </span>
+              </button>
+            }
+          </div>
+        }
+
+        <div class="mt-10 flex gap-3">
+          <button
+            type="button"
+            (click)="goBack()"
+            class="flex-1 rounded-2xl border border-white/12 px-4 py-3 text-sm font-medium text-white/70 transition hover:border-white/20 hover:text-white"
+          >
+            {{ currentStep === 0 ? 'Back' : 'Previous' }}
+          </button>
+
+          <button
+            type="button"
+            (click)="continue()"
+            class="flex-1 rounded-2xl border border-white/18 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
+          >
+            {{ isLastStep ? 'Get started' : 'Next' }}
+          </button>
+        </div>
+      </div>
+    </section>
+  }
 </main>
