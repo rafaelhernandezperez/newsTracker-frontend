@@ -1,7 +1,254 @@
-<div class="detail-page">
-  <a class="back-link" routerLink="/portfolio">Volver al portfolio</a>
+<main class="detail-shell min-h-screen bg-[#0c0c0c] text-stone-100">
+  <div class="detail-background" aria-hidden="true">
+    <div class="background-glow background-glow-left"></div>
+    <div class="background-glow background-glow-right"></div>
+    <div class="background-grid"></div>
+  </div>
 
-  <h1>
-    {{ company?.name || 'Empresa no encontrada' }}
-  </h1>
-</div>
+  <div class="relative z-10 mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-4 py-4 sm:px-6 lg:px-8">
+    <header class="topbar">
+      <a routerLink="/portfolio" class="brand-mark">NewsTracker</a>
+
+      <nav class="topnav" aria-label="Primary">
+        @for (item of navItems; track item.label) {
+          <a
+            [routerLink]="item.link"
+            class="topnav-link"
+            [class.topnav-link-active]="item.active"
+          >
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+    </header>
+
+    @if (company) {
+      <div class="detail-frame">
+        <aside
+          class="detail-sidebar"
+          [class.detail-sidebar-mobile-open]="isWatchlistOpen"
+        >
+          <section class="sidebar-section">
+            <div class="section-heading">
+              <p>Watchlist</p>
+              <a routerLink="/portfolio" class="section-action">Manage</a>
+            </div>
+
+            <div class="watchlist">
+              @for (row of watchlistRows; track row.symbol) {
+                <a
+                  class="watchlist-item"
+                  [class.watchlist-item-active]="row.symbol === company.symbol"
+                  [routerLink]="['/portfolio', row.symbol]"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="watchlist-dot" [class.watchlist-dot-bank]="row.sector === 'Banca'"></span>
+                    <p class="watchlist-symbol">{{ row.symbol }}</p>
+                  </div>
+                  <span class="watchlist-change" [class.watchlist-change-negative]="row.direction === 'negative'">
+                    {{ row.change }}
+                  </span>
+                </a>
+              }
+            </div>
+          </section>
+        </aside>
+
+        <section class="detail-main">
+          <div class="detail-header">
+            <div>
+              <button type="button" class="watchlist-toggle" (click)="toggleWatchlist()">
+                {{ isWatchlistOpen ? 'Hide watchlist' : 'Show watchlist' }}
+              </button>
+
+              <div class="headline-row">
+                <h1>{{ company.symbol }}</h1>
+                <span class="price-label">{{ priceLabel }}</span>
+                <span
+                  class="change-pill"
+                  [class.change-pill-positive]="quoteDirection === 'positive'"
+                  [class.change-pill-negative]="quoteDirection === 'negative'"
+                >
+                  {{ quoteDirection === 'positive' ? '▲' : '▼' }} {{ absoluteChangeLabel }} today
+                </span>
+              </div>
+
+              <p class="company-meta">
+                {{ company.name }}
+                <span>·</span>
+                {{ company.sector || 'Markets' }}
+                <span>·</span>
+                Updated 2 min ago
+              </p>
+
+              <div class="range-tabs">
+                @for (tab of timeframeOptions; track tab.label) {
+                  <button
+                    type="button"
+                    class="range-tab"
+                    [class.range-tab-active]="tab.label === activeTimeframe"
+                    (click)="selectTimeframe(tab)"
+                  >
+                    {{ tab.label }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <section class="chart-panel">
+            @if (isLoading) {
+              <div class="chart-state">Loading chart...</div>
+            } @else if (errorMessage) {
+              <div class="chart-state">{{ errorMessage }}</div>
+            } @else if (chartPath) {
+              <svg
+                class="chart"
+                [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight"
+                role="img"
+                [attr.aria-label]="'Price history for ' + company.name"
+              >
+                @for (gridLine of gridLines; track gridLine) {
+                  <line
+                    class="chart-grid"
+                    [attr.x1]="chartPadding.left"
+                    [attr.x2]="chartWidth - chartPadding.right"
+                    [attr.y1]="gridLine"
+                    [attr.y2]="gridLine"
+                  />
+                }
+
+                @if (chartAreaPath) {
+                  <path class="chart-area" [attr.d]="chartAreaPath"></path>
+                }
+
+                <polyline class="trend-line" [attr.points]="chartPath" />
+
+                @for (label of axisLabels; track label.x) {
+                  <text
+                    class="chart-axis-label"
+                    [attr.x]="label.x"
+                    [attr.y]="chartHeight - 18"
+                    text-anchor="middle"
+                  >
+                    {{ label.text }}
+                  </text>
+                }
+
+                @for (marker of newsMarkers; track $index) {
+                  <circle
+                    class="news-marker-ring"
+                    [attr.cx]="marker.x"
+                    [attr.cy]="marker.y"
+                    [attr.r]="marker.size + 3"
+                    [attr.data-sentiment]="marker.sentiment"
+                    (click)="openNewsModal(marker.item)"
+                  />
+                }
+
+                @for (marker of newsMarkers; track $index) {
+                  <circle
+                    class="news-marker"
+                    [attr.cx]="marker.x"
+                    [attr.cy]="marker.y"
+                    [attr.r]="marker.size"
+                    [attr.data-sentiment]="marker.sentiment"
+                    (click)="openNewsModal(marker.item)"
+                  />
+                }
+              </svg>
+            } @else {
+              <div class="chart-state">Not enough price history to draw the chart.</div>
+            }
+          </section>
+
+          <section class="stats-grid">
+            @for (stat of statCards; track stat.label) {
+              <article class="stat-card">
+                <p>{{ stat.label }}</p>
+                <strong>{{ stat.value }}</strong>
+              </article>
+            }
+          </section>
+
+          <section class="related-news">
+            <div class="section-heading">
+              <p>Related news</p>
+            </div>
+
+            <div class="related-news-list">
+              @for (item of relatedNewsItems; track item.title) {
+                <article class="related-news-item">
+                  <div class="related-news-meta">
+                    <span class="news-bullet" [class.news-bullet-amber]="item.accent === 'amber'" [class.news-bullet-green]="item.accent === 'green'"></span>
+                    <p>{{ item.source }} · {{ item.age }}</p>
+                  </div>
+                  <h2>{{ item.title }}</h2>
+                  <div class="related-news-tags">
+                    @for (tag of item.tags; track tag) {
+                      <span>{{ tag }}</span>
+                    }
+                  </div>
+                  @if (item.link) {
+                    <a
+                      class="related-news-link"
+                      [href]="item.link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Read full article
+                    </a>
+                  }
+                </article>
+              }
+            </div>
+          </section>
+        </section>
+      </div>
+    } @else {
+      <section class="missing-state">
+        <h1>Company not found</h1>
+        <p>We couldn’t find the company you selected.</p>
+      </section>
+    }
+  </div>
+
+  @if (selectedNewsItem) {
+    <div class="news-modal-backdrop" (click)="closeNewsModal()">
+      <section
+        class="news-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="news-modal-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="news-modal-header">
+          <div>
+            <p class="news-modal-meta">{{ selectedNewsItem.source }} · {{ selectedNewsItem.age }}</p>
+            <h2 id="news-modal-title">{{ selectedNewsItem.title }}</h2>
+          </div>
+          <button type="button" class="news-modal-close" (click)="closeNewsModal()">Close</button>
+        </div>
+
+        <p class="news-modal-summary">{{ selectedNewsItem.summary }}</p>
+
+        <div class="related-news-tags">
+          @for (tag of selectedNewsItem.tags; track tag) {
+            <span>{{ tag }}</span>
+          }
+        </div>
+
+        @if (selectedNewsItem.link) {
+          <a
+            class="related-news-link"
+            [href]="selectedNewsItem.link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Read full article
+          </a>
+        }
+      </section>
+    </div>
+  }
+</main>

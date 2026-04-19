@@ -2,40 +2,49 @@
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <div>
-        <h2>Seleccionar compañías</h2>
-        <p>Elige una o varias empresas para añadir al portfolio.</p>
+        <p class="eyebrow">Watchlist</p>
+        <h2>Manage your companies</h2>
+        <p class="intro">Choose which companies stay in your news tracker. Your sidebar and dashboard will update from this selection.</p>
       </div>
 
-      <button class="close-btn" (click)="close.emit()">×</button>
+      <button class="close-btn" (click)="close.emit()" aria-label="Close modal">×</button>
     </div>
 
     <input
       type="text"
       [(ngModel)]="search"
-      placeholder="Buscar por nombre o ticker"
+      placeholder="Search by company name or ticker"
       class="search-input"
     />
 
     <div class="company-list">
       @for (company of filteredCompanies; track company.symbol) {
-        <label class="company-item">
-          <div>
-            <strong>{{ company.symbol }}</strong>
-            <span>{{ company.name }}</span>
+        <button type="button" class="company-item" [class.company-item-selected]="isChecked(company)" (click)="toggleCompany(company)">
+          <div class="company-info">
+            <div class="company-symbol-block">
+              <strong>{{ company.symbol }}</strong>
+            </div>
+
+            <div class="company-copy">
+              <strong>{{ company.name }}</strong>
+              <span>{{ company.sector || 'Markets' }}</span>
+              <p>{{ company.summary }}</p>
+            </div>
           </div>
 
-          <input
-            type="checkbox"
-            [checked]="isChecked(company)"
-            (change)="toggleCompany(company)"
-          />
-        </label>
+          <span class="selection-switch" [class.selection-switch-active]="isChecked(company)" aria-hidden="true">
+            <span class="selection-switch-knob"></span>
+          </span>
+        </button>
       }
     </div>
 
     <div class="modal-footer">
-      <button class="secondary" (click)="close.emit()">Cancelar</button>
-      <button class="primary" (click)="save()">Guardar selección</button>
+      <p>{{ tempSelection.length }} companies selected</p>
+      <div class="modal-actions">
+        <button class="secondary" (click)="close.emit()">Cancel</button>
+        <button class="primary" (click)="save()">Save watchlist</button>
+      </div>
     </div>
   </div>
 </div>
