@@ -2,185 +2,400 @@
   display: block;
 }
 
-.portfolio-page {
-  min-height: 100vh;
-  background: #efefed;
-  padding: 48px 56px 72px;
-  color: #ffffff;
+.portfolio-shell {
+  position: relative;
+  font-family: Inter, 'Segoe UI', sans-serif;
 }
 
-.hero {
-  margin-bottom: 28px;
-}
-
-.hero h1 {
-  margin: 0;
-  font-size: 56px;
-  font-weight: 700;
-  letter-spacing: -1px;
-  color: #ffffff;
-}
-
-.hero p {
-  margin-top: 8px;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 16px;
-}
-
-.cards-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.company-card {
-  display: grid;
-  grid-template-columns: minmax(180px, 260px) 1fr;
-  align-items: stretch;
-  min-height: 168px;
-  border-radius: 24px;
+.portfolio-background {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  background: rgba(191, 191, 191, 0.75);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
-}
-
-.company-visual {
-  display: grid;
-  place-items: center;
-  padding: 24px;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.2), transparent 55%),
-    rgba(215, 215, 215, 0.58);
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 30%),
+    #0c0c0c;
 }
 
-.company-visual span {
-  font-size: clamp(42px, 6vw, 72px);
-  line-height: 0.9;
-  letter-spacing: -2px;
-  font-weight: 300;
+.background-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(80px);
+  opacity: 0.22;
+}
+
+.background-glow-left {
+  top: -8rem;
+  left: -10rem;
+  width: 28rem;
+  height: 28rem;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.background-glow-right {
+  right: -8rem;
+  bottom: -12rem;
+  width: 24rem;
+  height: 24rem;
+  background: rgba(120, 255, 189, 0.05);
+}
+
+.background-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.4), transparent 100%);
+  opacity: 0.18;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.75rem;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.85rem 1rem;
+  backdrop-filter: blur(18px);
+}
+
+.brand-mark {
   color: rgba(255, 255, 255, 0.92);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-.card-content {
+.topnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.topnav-link {
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  color: rgba(255, 255, 255, 0.52);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: 160ms ease;
+}
+
+.topnav-link:hover,
+.topnav-link-active {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.dashboard-frame {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 1.5rem;
+  flex: 1;
+  margin-top: 1.25rem;
+}
+
+.dashboard-sidebar,
+.news-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+}
+
+.dashboard-sidebar {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 20px 24px 18px;
+  gap: 1.25rem;
+  border-radius: 2rem;
+  padding: 1.25rem;
 }
 
-.card-meta {
+.sidebar-section {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.section-heading {
+  display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.company-date {
+.section-heading p,
+.page-label {
   margin: 0;
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 12px;
-}
-
-.card-copy {
-  margin-left: auto;
-  max-width: 440px;
-  text-align: right;
-}
-
-.card-copy h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.74rem;
   font-weight: 600;
-  color: #ffffff;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-.card-copy p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 14px;
-  line-height: 1.4;
+.section-action {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: 160ms ease;
 }
 
-.more-link {
-  margin-left: auto;
-  color: #ffffff;
+.section-action:hover {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.watchlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.watchlist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.2rem;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0.8rem 0.85rem;
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
+  transition: 160ms ease;
 }
 
-.remove-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.28);
-  color: #ffffff;
-  cursor: pointer;
-  font-size: 22px;
+.watchlist-item:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.add-card {
-  width: 100%;
-  min-height: 106px;
-  border-radius: 22px;
-  border: none;
-  display: grid;
-  place-items: center;
-  gap: 10px;
-  background: rgba(191, 191, 191, 0.75);
-  cursor: pointer;
-  transition: 0.2s ease;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+.watchlist-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #6aa2ff;
+  box-shadow: 0 0 0 0.2rem rgba(106, 162, 255, 0.12);
 }
 
-.add-card:hover {
-  transform: translateY(-2px);
-  background: rgba(183, 183, 183, 0.84);
+.watchlist-dot-bank {
+  background: #2bd592;
+  box-shadow: 0 0 0 0.2rem rgba(43, 213, 146, 0.12);
 }
 
-.add-card span {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 28px;
-  background: rgba(255, 255, 255, 0.34);
-  color: #ffffff;
-}
-
-.add-card p {
+.watchlist-symbol {
   margin: 0;
-  color: #ffffff;
-  font-size: 15px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.96rem;
+  font-weight: 600;
 }
 
-@media (max-width: 760px) {
-  .portfolio-page {
-    padding: 32px 20px 48px;
-  }
+.watchlist-name {
+  margin: 0.2rem 0 0;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
 
-  .hero h1 {
-    font-size: 42px;
-  }
+.watchlist-change {
+  color: #8add84;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
 
-  .company-card {
+.watchlist-change-negative {
+  color: #ff8e8e;
+}
+
+.topic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.topic-chip {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.5rem 0.8rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.82rem;
+}
+
+.dashboard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.dashboard-intro {
+  padding: 0.5rem 0.25rem 0;
+}
+
+.dashboard-intro h1 {
+  margin: 0.6rem 0 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  color: rgba(255, 255, 255, 0.97);
+}
+
+.page-meta {
+  margin: 0.55rem 0 0;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.96rem;
+}
+
+.news-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.news-card {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  border-radius: 2rem;
+  padding: 1.15rem;
+  align-items: stretch;
+}
+
+.news-card-symbol {
+  display: flex;
+  align-items: center;
+  min-height: 210px;
+  padding-left: 0.8rem;
+}
+
+.news-card-symbol span {
+  display: block;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: clamp(3.8rem, 7vw, 6.8rem);
+  line-height: 0.9;
+  letter-spacing: -0.1em;
+  font-weight: 600;
+  font-family: Inter, 'Segoe UI', sans-serif;
+}
+
+.news-card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.4rem 0;
+}
+
+.news-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.84rem;
+}
+
+.news-card h2 {
+  margin: 1rem 0 0;
+  color: rgba(255, 255, 255, 0.97);
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.news-card p {
+  margin: 0.85rem 0 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.98rem;
+  line-height: 1.7;
+  max-width: 56ch;
+}
+
+.news-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 160px;
+}
+
+.news-card-date {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.news-card-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.85rem 1rem;
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  transition: 160ms ease;
+}
+
+.news-card-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 1);
+}
+
+@media (max-width: 1100px) {
+  .dashboard-frame {
     grid-template-columns: 1fr;
   }
 
-  .company-visual {
-    min-height: 120px;
+  .news-card {
+    grid-template-columns: 1fr;
   }
 
-  .card-copy {
-    margin-left: 0;
-    max-width: none;
-    text-align: left;
+  .news-card-symbol {
+    min-height: auto;
+    padding-left: 0;
   }
 
-  .more-link {
-    margin-left: 0;
+  .news-card-actions {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 820px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .portfolio-shell .topnav {
+    width: 100%;
+  }
+
+  .topnav-link {
+    flex: 1 1 calc(50% - 0.35rem);
+    text-align: center;
+  }
+
+  .dashboard-sidebar,
+  .news-card {
+    border-radius: 1.5rem;
+  }
+
+  .news-card {
+    padding: 1rem;
   }
 }

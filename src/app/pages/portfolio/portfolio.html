@@ -1,39 +1,99 @@
-<div class="portfolio-page">
-  <header class="hero">
-    <h1>My portfolio</h1>
-    <p>Selecciona las companias que quieres seguir.</p>
-  </header>
+<main class="portfolio-shell min-h-screen bg-[#0c0c0c] text-stone-100">
+  <div class="portfolio-background" aria-hidden="true">
+    <div class="background-glow background-glow-left"></div>
+    <div class="background-glow background-glow-right"></div>
+    <div class="background-grid"></div>
+  </div>
 
-  <section class="cards-list">
-    @for (company of selectedCompanies; track company.symbol) {
-      <article class="company-card">
-        <div class="company-visual" aria-hidden="true">
-          <span>{{ company.symbol }}</span>
-        </div>
+  <div class="relative z-10 mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-4 py-4 sm:px-6 lg:px-8">
+    <header class="topbar">
+      <a routerLink="/portfolio" class="brand-mark">NewsTracker</a>
 
-        <div class="card-content">
-          <div class="card-meta">
-            <p class="company-date">{{ company.publishedAt }}</p>
-            <button class="remove-btn" (click)="removeCompany(company.symbol)" aria-label="Eliminar empresa">
-              ×
-            </button>
+      <nav class="topnav" aria-label="Primary">
+        @for (item of navItems; track item.label) {
+          <a routerLink="/portfolio" class="topnav-link" [class.topnav-link-active]="item.active">
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+    </header>
+
+    <div class="dashboard-frame">
+      <aside class="dashboard-sidebar">
+        <section class="sidebar-section">
+          <div class="section-heading">
+            <p>Watchlist</p>
+            <button type="button" class="section-action" (click)="openModal()">Manage</button>
           </div>
 
-          <div class="card-copy">
-            <h2>{{ company.name }}</h2>
-            <p>{{ company.summary }}</p>
+          <div class="watchlist">
+            @for (row of watchlistRows; track row.company.symbol) {
+              <a class="watchlist-item" [routerLink]="['/portfolio', row.company.symbol]">
+                <div class="flex items-center gap-3">
+                  <span class="watchlist-dot" [class.watchlist-dot-bank]="row.company.sector === 'Banca'"></span>
+                  <div>
+                    <p class="watchlist-symbol">{{ row.company.symbol }}</p>
+                    <p class="watchlist-name">{{ row.company.name }}</p>
+                  </div>
+                </div>
+                <span
+                  class="watchlist-change"
+                  [class.watchlist-change-negative]="row.changeDirection === 'negative'"
+                >
+                  {{ row.change }}
+                </span>
+              </a>
+            }
+          </div>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-heading">
+            <p>Topics</p>
           </div>
 
-          <a class="more-link" [routerLink]="['/portfolio', company.symbol]">Ver más</a>
-        </div>
-      </article>
-    }
+          <div class="topic-list">
+            @for (topic of topics; track topic) {
+              <div class="topic-chip">{{ topic }}</div>
+            }
+          </div>
+        </section>
+      </aside>
 
-    <button class="add-card" (click)="openModal()">
-      <span>+</span>
-      <p>Anadir compania</p>
-    </button>
-  </section>
+      <section class="dashboard-main">
+        <div class="dashboard-intro">
+          <div>
+            <p class="page-label">Dashboard</p>
+            <h1>Latest company news</h1>
+            <p class="page-meta">A quieter overview of the companies you are following.</p>
+          </div>
+        </div>
+
+        <section class="news-stack">
+          @for (card of newsCards; track card.company.symbol) {
+            <article class="news-card" [class.news-card-green]="card.accent === 'green'" [class.news-card-amber]="card.accent === 'amber'" [class.news-card-violet]="card.accent === 'violet'">
+              <div class="news-card-symbol">
+                <span>{{ card.company.symbol }}</span>
+              </div>
+
+              <div class="news-card-body">
+                <div class="news-card-meta">
+                  <span>{{ card.company.sector || 'Markets' }}</span>
+                </div>
+                <h2>{{ card.headline }}</h2>
+                <p>{{ card.snippet }}</p>
+              </div>
+
+              <div class="news-card-actions">
+                <span class="news-card-date">{{ card.publishedAt }}</span>
+                <a class="news-card-link" [routerLink]="['/portfolio', card.company.symbol]">View more</a>
+              </div>
+            </article>
+          }
+        </section>
+      </section>
+    </div>
+  </div>
 
   @if (isModalOpen) {
     <app-company-selector-modal
@@ -43,4 +103,4 @@
       (saveSelection)="addCompanies($event)"
     />
   }
-</div>
+</main>
