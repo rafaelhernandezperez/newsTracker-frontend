@@ -1,9 +1,31 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  ElementRef,
+  NgZone,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { finalize, timeout } from 'rxjs';
+import { catchError, finalize, forkJoin, map, of, timeout } from 'rxjs';
+import {
+  AreaSeries,
+  ColorType,
+  createChart,
+  createSeriesMarkers,
+  type IChartApi,
+  type ISeriesApi,
+  type ISeriesMarkersPluginApi,
+  type SeriesMarker,
+  type Time,
+} from 'lightweight-charts';
 import { COMPANIES } from '../../core/data/companies.data';
 import { Company } from '../../core/models/company.model';
 import {
@@ -12,21 +34,9 @@ import {
   MarketQuote,
 } from '../../core/models/market.model';
 import { MarketDataService } from '../../core/services/market-data.service';
-import { NewsItem } from '../../core/models/news.model';
+import { NewsImportance, NewsItem, NewsSentiment } from '../../core/models/news.model';
 import { NewsDataService } from '../../core/services/news-data.service';
-
-interface ChartMarker {
-  x: number;
-  y: number;
-  size: number;
-  sentiment: 'positive' | 'neutral' | 'negative';
-  item: RelatedNewsItem;
-}
-
-interface ChartAxisLabel {
-  x: number;
-  text: string;
-}
+import { UserPreferencesService } from '../../core/services/user-preferences.service';
 
 type NavItem = {
   label: string;
@@ -56,6 +66,8 @@ type RelatedNewsItem = {
   dateKey?: string;
   tags: string[];
   accent: 'amber' | 'green' | 'muted';
+  importance?: NewsImportance;
+  sentiment?: NewsSentiment;
 };
 
 type TimeframeOption = {
@@ -70,17 +82,23 @@ type TimeframeOption = {
   templateUrl: './company-detail.html',
   styleUrl: './company-detail.css',
 })
-export class CompanyDetailComponent implements OnInit {
+export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly marketDataService = inject(MarketDataService);
   private readonly newsDataService = inject(NewsDataService);
+  private readonly preferences = inject(UserPreferencesService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly ngZone = inject(NgZone);
   private readonly symbol = this.route.snapshot.paramMap.get('symbol');
 
-  readonly chartWidth = 860;
-  readonly chartHeight = 340;
-  readonly chartPadding = { top: 26, right: 24, bottom: 58, left: 24 };
+  @ViewChild('chartContainer') private chartContainer?: ElementRef<HTMLDivElement>;
+  private chart?: IChartApi;
+  private series?: ISeriesApi<'Area'>;
+  private markersPlugin?: ISeriesMarkersPluginApi<Time>;
+  /** Maps a chart time (yyyy-mm-dd) to the news item behind its marker, for click handling. */
+  private markerLookup = new Map<string, RelatedNewsItem>();
+
   readonly timeframeOptions: TimeframeOption[] = [
     { label: '5D', days: 5 },
     { label: '1M', days: 30 },
@@ -103,26 +121,55 @@ export class CompanyDetailComponent implements OnInit {
   quote: MarketQuote | null = null;
   chartData: MarketChartPoint[] = [];
   history: MarketHistoryPoint[] = [];
-  chartPath = '';
-  chartAreaPath = '';
-  newsMarkers: ChartMarker[] = [];
-  gridLines: number[] = [];
-  axisLabels: ChartAxisLabel[] = [];
+  hasChartData = false;
   isLoading = true;
   errorMessage = '';
   relatedNewsItems: RelatedNewsItem[] = [];
   selectedNewsItem: RelatedNewsItem | null = null;
 
-  readonly watchlistRows: WatchlistRow[] = [
-    { symbol: 'NVDA', change: '+3.2%', direction: 'positive', sector: 'Tecnologia' },
-    { symbol: 'BBVA', change: '+0.8%', direction: 'positive', sector: 'Banca' },
-    { symbol: 'GOOG', change: '-1.1%', direction: 'negative', sector: 'Tecnologia' },
-    { symbol: 'MSFT', change: '+0.4%', direction: 'positive', sector: 'Tecnologia' },
-  ];
+  watchlistRows: WatchlistRow[] = [];
 
   ngOnInit(): void {
+    this.loadWatchlist();
     this.loadMarketData();
     this.loadRelatedNews();
+  }
+
+  private loadWatchlist(): void {
+    const tickers = this.preferences.tickers().slice(0, 8);
+
+    if (!tickers.length) {
+      this.watchlistRows = [];
+      return;
+    }
+
+    forkJoin(
+      tickers.map((symbol) =>
+        this.marketDataService.getCompanyMarketData(symbol, 5).pipe(
+          map((response) => this.mapWatchlistRow(symbol, response.quote)),
+          catchError(() => of(this.mapWatchlistRow(symbol, null))),
+        ),
+      ),
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((rows) => {
+        this.watchlistRows = rows;
+        this.changeDetectorRef.markForCheck();
+      });
+  }
+
+  private mapWatchlistRow(symbol: string, quote: MarketQuote | null): WatchlistRow {
+    const sector = COMPANIES.find((company) => company.symbol === symbol)?.sector;
+
+    if (!quote) {
+      return { symbol, change: '—', direction: 'neutral', sector };
+    }
+
+    const change = quote.change ?? 0;
+    const direction = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
+    const sign = change > 0 ? '+' : '';
+
+    return { symbol, change: `${sign}${change.toFixed(1)}%`, direction, sector };
   }
 
   toggleWatchlist(): void {
@@ -275,114 +322,269 @@ export class CompanyDetailComponent implements OnInit {
 
     this.newsDataService
       .getCompanyNews(symbol, this.company?.name, {
-        limit: Math.max(4, timeframe.days > 30 ? 8 : 6),
+        // Scale with the window so longer timeframes get more dated markers
+        // spread across the chart (the marker layer dedupes by day).
+        limit: this.newsLimitForTimeframe(timeframe.days),
         range: timeframe.label,
         daysBack: timeframe.days,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          this.relatedNewsItems = response.items.length
-            ? response.items.map((item) => this.mapRelatedNewsItem(item))
-            : [this.createFallbackNewsItem(symbol)];
+          this.relatedNewsItems = response.items.map((item) => this.mapRelatedNewsItem(item));
           this.buildChart();
           this.changeDetectorRef.markForCheck();
         },
         error: () => {
-          this.relatedNewsItems = [this.createFallbackNewsItem(symbol)];
+          this.relatedNewsItems = [];
           this.buildChart();
           this.changeDetectorRef.markForCheck();
         },
       });
   }
 
-  private buildChart(): void {
-    if (this.chartData.length < 2) {
-      this.chartPath = '';
-      this.chartAreaPath = '';
-      this.newsMarkers = [];
-      this.gridLines = [];
-      this.axisLabels = [];
+  ngAfterViewInit(): void {
+    this.createChart();
+    this.buildChart();
+  }
+
+  ngOnDestroy(): void {
+    this.markersPlugin = undefined;
+    this.series = undefined;
+    this.chart?.remove();
+    this.chart = undefined;
+  }
+
+  /** Create the TradingView Lightweight Charts instance once the container exists. */
+  private createChart(): void {
+    const container = this.chartContainer?.nativeElement;
+
+    if (!container || this.chart) {
       return;
     }
 
-    const prices = this.chartData.map((point) => point.value);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const range = Math.max(maxPrice - minPrice, 1);
-    const innerWidth = this.chartWidth - this.chartPadding.left - this.chartPadding.right;
-    const innerHeight = this.chartHeight - this.chartPadding.top - this.chartPadding.bottom;
-    const baselineY = this.chartHeight - this.chartPadding.bottom;
-
-    const points = this.chartData.map((point, index) => {
-      const x = this.chartPadding.left + (index / (this.chartData.length - 1)) * innerWidth;
-      const y = this.chartPadding.top + ((maxPrice - point.value) / range) * innerHeight;
-
-      return { x, y, price: point.value };
+    this.chart = createChart(container, {
+      autoSize: true,
+      layout: {
+        background: { type: ColorType.Solid, color: 'transparent' },
+        textColor: 'rgba(231, 229, 228, 0.55)',
+        fontFamily: getComputedStyle(container).fontFamily,
+        attributionLogo: false,
+      },
+      grid: {
+        vertLines: { visible: false },
+        horzLines: { color: 'rgba(255, 255, 255, 0.06)' },
+      },
+      rightPriceScale: { borderVisible: false },
+      timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
+      crosshair: { mode: 0 },
     });
 
-    this.chartPath = points.map((point) => `${point.x},${point.y}`).join(' ');
-    this.chartAreaPath = [
-      `M ${points[0].x} ${baselineY}`,
-      ...points.map((point) => `L ${point.x} ${point.y}`),
-      `L ${points[points.length - 1].x} ${baselineY}`,
-      'Z',
-    ].join(' ');
+    this.series = this.chart.addSeries(AreaSeries, {
+      lineColor: '#21c996',
+      topColor: 'rgba(33, 201, 150, 0.28)',
+      bottomColor: 'rgba(33, 201, 150, 0.02)',
+      lineWidth: 2,
+      priceLineVisible: false,
+      crosshairMarkerVisible: true,
+    });
 
-    this.gridLines = [0.25, 0.5, 0.75].map(
-      (ratio) => this.chartPadding.top + innerHeight * ratio,
-    );
-    this.axisLabels = this.buildAxisLabels(points.length);
+    this.markersPlugin = createSeriesMarkers(this.series, []);
 
-    const groupedMarkers = new Map<string, number>();
+    // Markers aren't directly clickable, so resolve the clicked time back to the
+    // news item behind the marker at that point and open the detail modal.
+    this.chart.subscribeClick((param) => {
+      if (param.time === undefined) {
+        return;
+      }
 
-    this.newsMarkers = this.relatedNewsItems
-      .map((item) => {
-        if (!item.dateKey) {
-          return null;
-        }
+      const item = this.markerLookup.get(this.timeToKey(param.time));
 
-        const pointIndex = this.chartData.findIndex((point) => point.date === item.dateKey);
+      if (!item) {
+        return;
+      }
 
-        if (pointIndex === -1) {
-          return null;
-        }
-
-        const point = points[pointIndex];
-        const stackedIndex = groupedMarkers.get(item.dateKey) ?? 0;
-        groupedMarkers.set(item.dateKey, stackedIndex + 1);
-
-        return {
-          x: point.x,
-          y: Math.max(this.chartPadding.top + 10, point.y - stackedIndex * 14),
-          size: 6,
-          sentiment: this.getMarkerSentiment(item),
-          item,
-        };
-      })
-      .filter((marker): marker is ChartMarker => marker !== null);
+      this.ngZone.run(() => {
+        this.openNewsModal(item);
+        this.changeDetectorRef.markForCheck();
+      });
+    });
   }
 
-  private buildAxisLabels(totalPoints: number): ChartAxisLabel[] {
-    if (totalPoints < 2) {
+  /** Push the latest price series + news markers into the chart. */
+  private buildChart(): void {
+    this.hasChartData = this.chartData.length >= 2;
+
+    if (!this.series) {
+      return;
+    }
+
+    if (!this.hasChartData) {
+      this.series.setData([]);
+      this.markersPlugin?.setMarkers([]);
+      this.markerLookup.clear();
+      return;
+    }
+
+    const seriesData = [...this.chartData]
+      .filter((point) => Boolean(point.date))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      .reduce<{ time: string; value: number }[]>((acc, point) => {
+        const last = acc[acc.length - 1];
+        // Collapse any duplicate dates (Lightweight Charts requires unique, ascending times).
+        if (last && last.time === point.date) {
+          last.value = point.value;
+        } else {
+          acc.push({ time: point.date, value: point.value });
+        }
+        return acc;
+      }, []);
+
+    this.series.setData(seriesData);
+    this.markersPlugin?.setMarkers(this.buildNewsMarkers(seriesData));
+    this.chart?.timeScale().fitContent();
+  }
+
+  /**
+   * Place a circle on the price line at each article's actual publish date.
+   * IMPORTANCIA drives the circle size; SENTIMIENTO drives its color. When more
+   * than one article lands on the same chart day, the most important one wins.
+   *
+   * Note: the free news feed only returns recent headlines, so until a
+   * historical news source is wired up, markers naturally cluster on the latest
+   * points (that's where the dated news actually is).
+   */
+  private buildNewsMarkers(data: { time: string; value: number }[]): SeriesMarker<Time>[] {
+    this.markerLookup.clear();
+
+    if (data.length < 2 || !this.relatedNewsItems.length) {
       return [];
     }
 
-    const tickCount = Math.min(4, totalPoints);
-    const indexes = Array.from({ length: tickCount }, (_, index) =>
-      Math.min(
-        totalPoints - 1,
-        Math.round((index / Math.max(tickCount - 1, 1)) * (totalPoints - 1)),
-      ),
-    );
+    // Snap each article to the nearest chart point by its real publish date.
+    const chosen = new Map<string, { item: RelatedNewsItem; rank: number; value: number }>();
+    for (const item of this.relatedNewsItems) {
+      if (!item.dateKey) {
+        continue;
+      }
 
-    return [...new Set(indexes)].map((pointIndex) => ({
-      x:
-        this.chartPadding.left +
-        (pointIndex / Math.max(totalPoints - 1, 1)) *
-          (this.chartWidth - this.chartPadding.left - this.chartPadding.right),
-      text: this.formatAxisDate(this.chartData[pointIndex]?.date ?? ''),
-    }));
+      // Allow a few days of slack so weekend/holiday news still lands on a
+      // trading day, but never on a date the chart doesn't actually show.
+      const index = this.nearestIndex(data, item.dateKey, 4);
+      if (index < 0) {
+        continue;
+      }
+
+      const point = data[index];
+      const rank = this.importanceRank(item.importance);
+      const existing = chosen.get(point.time);
+      if (!existing || rank > existing.rank) {
+        chosen.set(point.time, { item, rank, value: point.value });
+      }
+    }
+
+    // Lightweight Charts requires markers in ascending time order.
+    return [...chosen.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([time, { item, value }]) => {
+        this.markerLookup.set(time, item);
+        const sentiment = this.getMarkerSentiment(item);
+
+        return {
+          time,
+          // Sit exactly on the line at this point's price.
+          position: 'atPriceMiddle',
+          price: value,
+          shape: 'circle',
+          color: this.sentimentColor(sentiment),
+          size: this.importanceSize(item.importance),
+        } satisfies SeriesMarker<Time>;
+      });
+  }
+
+  /** Nearest chart point to a news date, within `maxDays`; -1 if none close enough. */
+  private nearestIndex(data: { time: string }[], dateKey: string, maxDays: number): number {
+    const target = new Date(`${dateKey}T00:00:00`).getTime();
+    if (Number.isNaN(target)) {
+      return -1;
+    }
+
+    let bestIndex = -1;
+    let bestDiff = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < data.length; i++) {
+      const diff = Math.abs(new Date(`${data[i].time}T00:00:00`).getTime() - target);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestIndex = i;
+      }
+    }
+
+    return bestDiff <= maxDays * 24 * 60 * 60 * 1000 ? bestIndex : -1;
+  }
+
+  private importanceRank(importance?: NewsImportance): number {
+    switch (importance) {
+      case 'MUY_IMPORTANTE':
+        return 3;
+      case 'IMPORTANTE':
+        return 2;
+      case 'POCO_RELEVANTE':
+        return 0;
+      default:
+        return 1;
+    }
+  }
+
+  private importanceSize(importance?: NewsImportance): number {
+    switch (importance) {
+      case 'MUY_IMPORTANTE':
+        return 3;
+      case 'IMPORTANTE':
+        return 2.2;
+      case 'POCO_RELEVANTE':
+        return 0.9;
+      default:
+        return 1.4;
+    }
+  }
+
+  private sentimentColor(sentiment: 'positive' | 'neutral' | 'negative'): string {
+    if (sentiment === 'positive') {
+      return '#21c996';
+    }
+
+    if (sentiment === 'negative') {
+      return '#f1675c';
+    }
+
+    return '#9ca3af';
+  }
+
+  private timeToKey(time: Time): string {
+    if (typeof time === 'string') {
+      return time;
+    }
+
+    if (typeof time === 'object' && 'year' in time) {
+      const month = String(time.month).padStart(2, '0');
+      const day = String(time.day).padStart(2, '0');
+      return `${time.year}-${month}-${day}`;
+    }
+
+    return String(time);
+  }
+
+  private newsLimitForTimeframe(days: number): number {
+    if (days <= 5) {
+      return 8;
+    }
+    if (days <= 30) {
+      return 12;
+    }
+    if (days <= 90) {
+      return 30;
+    }
+    return 40;
   }
 
   private getDaysForTimeframe(label: TimeframeOption['label']): number {
@@ -523,21 +725,25 @@ export class CompanyDetailComponent implements OnInit {
       dateKey: this.toDateKey(publishedAt),
       tags: this.buildNewsTags(item),
       accent: this.getNewsAccent(item),
+      importance: item.importance,
+      sentiment: item.sentiment,
     };
   }
 
-  private createFallbackNewsItem(symbol: string): RelatedNewsItem {
-    return {
-      source: 'NewsTracker',
-      age: 'Latest',
-      title: `Latest headlines continue to shape sentiment around ${symbol}`,
-      summary: 'We could not find a matching article for the selected range yet.',
-      tags: ['market reaction'],
-      accent: 'muted',
-    };
-  }
+  private getMarkerSentiment(item: RelatedNewsItem): 'positive' | 'neutral' | 'negative' {
+    // Prefer the AI sentiment; fall back to the news-list accent if it's missing.
+    if (item.sentiment === 'POSITIVO') {
+      return 'positive';
+    }
 
-  private getMarkerSentiment(item: RelatedNewsItem): ChartMarker['sentiment'] {
+    if (item.sentiment === 'NEGATIVO') {
+      return 'negative';
+    }
+
+    if (item.sentiment === 'NEUTRO') {
+      return 'neutral';
+    }
+
     if (item.accent === 'green') {
       return 'positive';
     }
@@ -605,19 +811,6 @@ export class CompanyDetailComponent implements OnInit {
     }
 
     return date.toISOString().slice(0, 10);
-  }
-
-  private formatAxisDate(value: string): string {
-    if (!value) {
-      return '';
-    }
-
-    const date = new Date(`${value}T00:00:00`);
-
-    return new Intl.DateTimeFormat('en-US', {
-      month: this.activeTimeframe === '1Y' ? 'short' : 'numeric',
-      day: 'numeric',
-    }).format(date);
   }
 
   private formatCurrency(value: number | null | undefined, fallbackValue?: number | null): string {

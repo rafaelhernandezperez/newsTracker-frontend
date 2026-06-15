@@ -1,7 +1,15 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { NewsItem, NewsResponse } from '../models/news.model';
+import { NewsImportance, NewsItem, NewsResponse, NewsSentiment } from '../models/news.model';
+
+const IMPORTANCE_VALUES: NewsImportance[] = [
+  'MUY_IMPORTANTE',
+  'IMPORTANTE',
+  'NEUTRO',
+  'POCO_RELEVANTE',
+];
+const SENTIMENT_VALUES: NewsSentiment[] = ['POSITIVO', 'NEGATIVO', 'NEUTRO'];
 
 export interface CompanyNewsQuery {
   limit?: number;
@@ -100,6 +108,17 @@ export class NewsDataService {
         ? entry['matchedTickers'].filter((value): value is string => typeof value === 'string')
         : [],
       score: typeof entry['score'] === 'number' ? entry['score'] : 0,
+      importance: this.parseEnum(entry['importance'], IMPORTANCE_VALUES),
+      sentiment: this.parseEnum(entry['sentiment'], SENTIMENT_VALUES),
     };
+  }
+
+  private parseEnum<T extends string>(value: unknown, allowed: T[]): T | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const normalized = value.trim().toUpperCase() as T;
+    return allowed.includes(normalized) ? normalized : undefined;
   }
 }

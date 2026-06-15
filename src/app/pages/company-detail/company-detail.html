@@ -97,69 +97,27 @@
           </div>
 
           <section class="chart-panel">
+            <div
+              #chartContainer
+              class="chart"
+              role="img"
+              [attr.aria-label]="'Price history for ' + company.name"
+            ></div>
+
             @if (isLoading) {
               <div class="chart-state">Loading chart...</div>
             } @else if (errorMessage) {
               <div class="chart-state">{{ errorMessage }}</div>
-            } @else if (chartPath) {
-              <svg
-                class="chart"
-                [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight"
-                role="img"
-                [attr.aria-label]="'Price history for ' + company.name"
-              >
-                @for (gridLine of gridLines; track gridLine) {
-                  <line
-                    class="chart-grid"
-                    [attr.x1]="chartPadding.left"
-                    [attr.x2]="chartWidth - chartPadding.right"
-                    [attr.y1]="gridLine"
-                    [attr.y2]="gridLine"
-                  />
-                }
-
-                @if (chartAreaPath) {
-                  <path class="chart-area" [attr.d]="chartAreaPath"></path>
-                }
-
-                <polyline class="trend-line" [attr.points]="chartPath" />
-
-                @for (label of axisLabels; track label.x) {
-                  <text
-                    class="chart-axis-label"
-                    [attr.x]="label.x"
-                    [attr.y]="chartHeight - 18"
-                    text-anchor="middle"
-                  >
-                    {{ label.text }}
-                  </text>
-                }
-
-                @for (marker of newsMarkers; track $index) {
-                  <circle
-                    class="news-marker-ring"
-                    [attr.cx]="marker.x"
-                    [attr.cy]="marker.y"
-                    [attr.r]="marker.size + 3"
-                    [attr.data-sentiment]="marker.sentiment"
-                    (click)="openNewsModal(marker.item)"
-                  />
-                }
-
-                @for (marker of newsMarkers; track $index) {
-                  <circle
-                    class="news-marker"
-                    [attr.cx]="marker.x"
-                    [attr.cy]="marker.y"
-                    [attr.r]="marker.size"
-                    [attr.data-sentiment]="marker.sentiment"
-                    (click)="openNewsModal(marker.item)"
-                  />
-                }
-              </svg>
-            } @else {
+            } @else if (!hasChartData) {
               <div class="chart-state">Not enough price history to draw the chart.</div>
             }
+
+            <div class="chart-legend" aria-hidden="true">
+              <span class="legend-note">Circles mark news on its publish date — size = AI importance, color = sentiment.</span>
+              <span class="legend-item"><span class="legend-dot legend-dot-positive"></span> Positive</span>
+              <span class="legend-item"><span class="legend-dot legend-dot-negative"></span> Negative</span>
+              <span class="legend-item"><span class="legend-dot legend-dot-neutral"></span> Neutral</span>
+            </div>
           </section>
 
           <section class="stats-grid">
@@ -200,6 +158,8 @@
                     </a>
                   }
                 </article>
+              } @empty {
+                <p class="related-news-empty">No articles found for this range.</p>
               }
             </div>
           </section>

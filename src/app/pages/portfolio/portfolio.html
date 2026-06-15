@@ -43,6 +43,8 @@
                   {{ row.change }}
                 </span>
               </a>
+            } @empty {
+              <p class="watchlist-empty">No companies yet. Use “Manage” to add some.</p>
             }
           </div>
         </section>
@@ -72,23 +74,37 @@
         <section class="news-stack">
           @for (card of newsCards; track card.company.symbol) {
             <article class="news-card" [class.news-card-green]="card.accent === 'green'" [class.news-card-amber]="card.accent === 'amber'" [class.news-card-violet]="card.accent === 'violet'">
-              <div class="news-card-symbol">
-                <span>{{ card.company.symbol }}</span>
+              <div class="news-card-head">
+                <span class="news-badge">{{ card.company.symbol }}</span>
+                <div class="news-card-meta">
+                  <span class="news-card-dot"></span>
+                  <span>{{ card.company.sector || 'Markets' }}</span>
+                  @if (card.publishedAt) {
+                    <span class="dot"></span>
+                    <span class="news-card-date">{{ card.publishedAt }}</span>
+                  }
+                </div>
               </div>
 
-              <div class="news-card-body">
-                <div class="news-card-meta">
-                  <span>{{ card.company.sector || 'Markets' }}</span>
-                </div>
+              @if (card.empty) {
+                <h2 class="news-card-empty-title">No recent news found</h2>
+                <p>We haven’t found recent coverage for {{ card.company.name }}. Try opening the company for a wider range.</p>
+              } @else {
                 <h2>{{ card.headline }}</h2>
-                <p>{{ card.snippet }}</p>
-              </div>
+                @if (card.snippet) {
+                  <p>{{ card.snippet }}</p>
+                }
+              }
 
               <div class="news-card-actions">
-                <span class="news-card-date">{{ card.publishedAt }}</span>
-                <a class="news-card-link" [routerLink]="['/portfolio', card.company.symbol]">View more</a>
+                <a class="news-card-link" [routerLink]="['/portfolio', card.company.symbol]">View more →</a>
               </div>
             </article>
+          } @empty {
+            <div class="news-empty-state">
+              <p>No companies in your watchlist yet.</p>
+              <button type="button" class="news-card-link" (click)="openModal()">Add companies →</button>
+            </div>
           }
         </section>
       </section>

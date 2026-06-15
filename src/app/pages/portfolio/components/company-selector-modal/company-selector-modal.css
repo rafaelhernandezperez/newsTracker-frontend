@@ -14,12 +14,13 @@
   max-height: 88vh;
   overflow: auto;
   scrollbar-width: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 2rem;
-  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--nt-border);
+  border-radius: var(--nt-radius-lg);
+  background: rgba(20, 20, 22, 0.96);
+  backdrop-filter: blur(var(--nt-blur));
   padding: 1.5rem;
-  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.38);
-  color: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.45);
+  color: var(--nt-text);
 }
 
 .modal::-webkit-scrollbar {
@@ -36,7 +37,7 @@
 
 .eyebrow {
   margin: 0;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--nt-text-faint);
   font-size: 0.74rem;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -53,35 +54,46 @@
 .intro {
   margin: 0.8rem 0 0;
   max-width: 52ch;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--nt-text-muted);
   line-height: 1.6;
 }
 
 .close-btn {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--nt-border);
+  background: var(--nt-surface);
   width: 42px;
   height: 42px;
   border-radius: 999px;
   font-size: 24px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--nt-text);
   cursor: pointer;
+  transition: 160ms ease;
+}
+
+.close-btn:hover {
+  background: var(--nt-surface-hover);
 }
 
 .search-input {
   width: 100%;
   margin: 1.35rem 0 0;
   padding: 0.95rem 1rem;
-  border-radius: 1.15rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--nt-radius-md);
+  border: 1px solid var(--nt-border);
+  background: var(--nt-surface);
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--nt-text);
+  transition: 160ms ease;
+}
+
+.search-input:focus {
   outline: none;
+  border-color: var(--nt-accent);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .search-input::placeholder {
-  color: rgba(255, 255, 255, 0.32);
+  color: var(--nt-text-faint);
 }
 
 .company-list {
@@ -98,8 +110,8 @@
   gap: 1rem;
   width: 100%;
   padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1.5rem;
+  border: 1px solid var(--nt-border);
+  border-radius: var(--nt-radius-md);
   background: rgba(255, 255, 255, 0.03);
   text-align: left;
   color: inherit;
@@ -107,10 +119,14 @@
   transition: 160ms ease;
 }
 
-.company-item:hover,
+.company-item:hover {
+  border-color: var(--nt-border-strong);
+  background: var(--nt-surface-hover);
+}
+
 .company-item-selected {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--nt-border-strong);
+  background: var(--nt-accent-soft);
 }
 
 .company-info {
@@ -126,9 +142,9 @@
   justify-content: center;
   min-width: 74px;
   height: 74px;
-  border-radius: 1.15rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--nt-radius-sm);
+  border: 1px solid var(--nt-border);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .company-symbol-block strong {
@@ -149,7 +165,7 @@
 .company-copy span {
   display: block;
   margin-top: 0.35rem;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--nt-text-faint);
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -157,7 +173,7 @@
 
 .company-copy p {
   margin: 0.6rem 0 0;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--nt-text);
   line-height: 1.55;
   font-size: 0.92rem;
 }
@@ -184,7 +200,7 @@
 }
 
 .selection-switch-active {
-  background: #4d9fff;
+  background: var(--nt-accent);
 }
 
 .selection-switch-active .selection-switch-knob {
@@ -203,7 +219,7 @@
 
 .modal-footer p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--nt-text-muted);
 }
 
 .modal-actions {
@@ -221,15 +237,23 @@
 }
 
 .secondary {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--nt-border);
   background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.74);
+  color: var(--nt-text);
+}
+
+.secondary:hover {
+  background: var(--nt-surface-hover);
 }
 
 .primary {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--nt-border-strong);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--nt-text-strong);
+}
+
+.primary:hover {
+  background: rgba(255, 255, 255, 0.16);
 }
 
 @media (max-width: 720px) {

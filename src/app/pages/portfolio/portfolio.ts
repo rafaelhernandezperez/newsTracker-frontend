@@ -5,8 +5,13 @@ import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
 import { COMPANIES } from '../../core/data/companies.data';
 import { Company } from '../../core/models/company.model';
+import { MarketQuote } from '../../core/models/market.model';
 import { NewsItem } from '../../core/models/news.model';
+import { MarketDataService } from '../../core/services/market-data.service';
 import { NewsDataService } from '../../core/services/news-data.service';
+import { UserPreferencesService } from '../../core/services/user-preferences.service';
+import { AuthService } from '../../core/services/auth.service';
+import { WatchlistService } from '../../core/services/watchlist.service';
 import { CompanySelectorModalComponent } from './components/company-selector-modal/company-selector-modal';
 
 type NavItem = {
@@ -26,6 +31,7 @@ type NewsCard = {
   snippet: string;
   publishedAt: string;
   accent: 'blue' | 'green' | 'amber' | 'violet';
+  empty: boolean;
 };
 
 @Component({
@@ -37,6 +43,10 @@ type NewsCard = {
 })
 export class PortfolioComponent implements OnInit {
   private readonly newsDataService = inject(NewsDataService);
+  private readonly marketDataService = inject(MarketDataService);
+  private readonly preferences = inject(UserPreferencesService);
+  private readonly auth = inject(AuthService);
+  private readonly watchlist = inject(WatchlistService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
 
@@ -49,15 +59,15 @@ export class PortfolioComponent implements OnInit {
     { label: 'News Feed' },
     { label: 'Settings' },
   ];
-  readonly topics = ['AI & chips', 'Regulation'];
+  topics: string[] = [];
 
-  selectedCompanies: Company[] = this.availableCompanies.filter((company) =>
-    ['NVDA', 'BBVA', 'AAPL', 'MSFT'].includes(company.symbol),
-  );
+  selectedCompanies: Company[] = [];
   watchlistRows: WatchlistRow[] = [];
   newsCards: NewsCard[] = [];
 
   ngOnInit(): void {
+    this.selectedCompanies = this.resolveCompanies(this.preferences.tickers());
+    this.topics = this.preferences.topics();
     this.syncViewModels();
   }
 
@@ -71,13 +81,64 @@ export class PortfolioComponent implements OnInit {
 
   addCompanies(companies: Company[]): void {
     this.selectedCompanies = [...companies];
+    const tickers = companies.map((company) => company.symbol);
+    this.preferences.setTickers(tickers);
     this.syncViewModels();
     this.closeModal();
+
+    // Keep the server watchlist (used by the daily digest) in sync for signed-in
+    // users. No-op when logged out — the interceptor simply sends no token.
+    if (this.auth.isAuthenticated) {
+      void this.watchlist.sync(tickers);
+    }
+  }
+
+  private resolveCompanies(tickers: string[]): Company[] {
+    return tickers.map(
+      (symbol) =>
+        this.availableCompanies.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
+    );
   }
 
   private syncViewModels(): void {
-    this.watchlistRows = this.buildWatchlistRows(this.selectedCompanies);
+    this.loadWatchlist(this.selectedCompanies);
     this.loadNewsCards(this.selectedCompanies);
+  }
+
+  private loadWatchlist(companies: Company[]): void {
+    const visible = companies.slice(0, 6);
+
+    if (!visible.length) {
+      this.watchlistRows = [];
+      this.changeDetectorRef.markForCheck();
+      return;
+    }
+
+    forkJoin(
+      visible.map((company) =>
+        this.marketDataService.getCompanyMarketData(company.symbol, 5).pipe(
+          map((response) => this.mapWatchlistRow(company, response.quote)),
+          catchError(() => of(this.mapWatchlistRow(company, null))),
+        ),
+      ),
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((rows) => {
+        this.watchlistRows = rows;
+        this.changeDetectorRef.markForCheck();
+      });
+  }
+
+  private mapWatchlistRow(company: Company, quote: MarketQuote | null): WatchlistRow {
+    if (!quote) {
+      return { company, change: '—', changeDirection: 'neutral' };
+    }
+
+    const change = quote.change ?? 0;
+    const direction = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
+    const sign = change > 0 ? '+' : '';
+
+    return { company, change: `${sign}${change.toFixed(1)}%`, changeDirection: direction };
   }
 
   private loadNewsCards(companies: Company[]): void {
@@ -102,43 +163,25 @@ export class PortfolioComponent implements OnInit {
       });
   }
 
-  private buildWatchlistRows(companies: Company[]): WatchlistRow[] {
-    const marketData: Record<string, Omit<WatchlistRow, 'company'>> = {
-      NVDA: { change: '+3.2%', changeDirection: 'positive' },
-      BBVA: { change: '+0.8%', changeDirection: 'positive' },
-      AAPL: { change: '-1.1%', changeDirection: 'negative' },
-      MSFT: { change: '+0.4%', changeDirection: 'positive' },
-      GOOG: { change: '-0.6%', changeDirection: 'negative' },
-      TSLA: { change: '+1.4%', changeDirection: 'positive' },
-      SAN: { change: '+0.5%', changeDirection: 'positive' },
-    };
-
-    return companies.slice(0, 6).map((company) => ({
-      company,
-      ...(marketData[company.symbol] ?? {
-        change: '0.0%',
-        changeDirection: 'neutral' as const,
-      }),
-    }));
-  }
-
   private mapNewsCard(company: Company, newsItem: NewsItem | null | undefined): NewsCard {
     if (!newsItem) {
       return {
         company,
-        headline: `Latest story on ${company.name}`,
-        snippet: company.summary ?? 'A concise summary of the latest company news will appear here.',
-        publishedAt: company.publishedAt ?? 'Latest update',
+        headline: '',
+        snippet: '',
+        publishedAt: '',
         accent: 'blue',
+        empty: true,
       };
     }
 
     return {
       company,
       headline: newsItem.title,
-      snippet: newsItem.summary?.trim() || company.summary || 'No summary available.',
+      snippet: newsItem.summary?.trim() ?? '',
       publishedAt: this.formatNewsDate(newsItem.isoDate ?? newsItem.pubDate),
       accent: this.getAccentFromNews(newsItem),
+      empty: false,
     };
   }
 

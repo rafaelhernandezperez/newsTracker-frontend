@@ -42,13 +42,13 @@
 }
 
 .path-layer-top {
-  opacity: 0.92;
-  animation: layer-drift-top 18s ease-in-out infinite alternate;
+  opacity: 0.5;
+  animation: layer-drift-top 26s ease-in-out infinite alternate;
 }
 
 .path-layer-bottom {
-  opacity: 0.72;
-  animation: layer-drift-bottom 22s ease-in-out infinite alternate;
+  opacity: 0.32;
+  animation: layer-drift-bottom 32s ease-in-out infinite alternate;
 }
 
 .path-group {
@@ -57,39 +57,39 @@
 }
 
 .path-group-primary {
-  animation: group-shift-a 16s ease-in-out infinite alternate;
+  animation: group-shift-a 24s ease-in-out infinite alternate;
 }
 
 .path-group-secondary {
-  animation: group-shift-b 20s ease-in-out infinite alternate;
+  animation: group-shift-b 28s ease-in-out infinite alternate;
 }
 
 .path-group-tertiary {
-  animation: group-shift-c 15s ease-in-out infinite alternate;
+  animation: group-shift-c 23s ease-in-out infinite alternate;
 }
 
 .path-group-quaternary {
-  animation: group-shift-d 19s ease-in-out infinite alternate;
+  animation: group-shift-d 27s ease-in-out infinite alternate;
 }
 
 .flow-line {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.44);
-  stroke-width: 1.7;
+  stroke: rgba(255, 255, 255, 0.26);
+  stroke-width: 1.4;
   stroke-linecap: round;
   stroke-dasharray: 18 14;
   stroke-dashoffset: 0;
-  animation: dash-flow 18s linear infinite;
+  animation: dash-flow 26s linear infinite;
 }
 
 .soft-line {
-  stroke: rgba(255, 255, 255, 0.22);
-  stroke-width: 1.35;
+  stroke: rgba(255, 255, 255, 0.13);
+  stroke-width: 1.1;
 }
 
 .faint-line {
-  stroke: rgba(255, 255, 255, 0.18);
-  stroke-width: 1.2;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1;
   stroke-dasharray: 12 16;
 }
 

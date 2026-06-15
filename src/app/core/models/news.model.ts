@@ -1,3 +1,6 @@
+export type NewsImportance = 'MUY_IMPORTANTE' | 'IMPORTANTE' | 'NEUTRO' | 'POCO_RELEVANTE';
+export type NewsSentiment = 'POSITIVO' | 'NEGATIVO' | 'NEUTRO';
+
 export interface NewsItem {
   id: string;
   title: string;
@@ -9,6 +12,10 @@ export interface NewsItem {
   language?: string;
   matchedTickers: string[];
   score: number;
+  /** AI-classified market impact. Drives the chart marker size. */
+  importance?: NewsImportance;
+  /** AI-classified tone. Drives the chart marker color. */
+  sentiment?: NewsSentiment;
 }
 
 export interface NewsResponse {
