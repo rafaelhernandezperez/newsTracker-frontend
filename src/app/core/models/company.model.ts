@@ -3,5 +3,4 @@ export interface Company {
   name: string;
   sector?: string;
   summary?: string;
-  publishedAt?: string;
 }
