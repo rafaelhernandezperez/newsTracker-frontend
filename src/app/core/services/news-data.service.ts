@@ -101,6 +101,7 @@ export class NewsDataService {
       link,
       source,
       summary: typeof entry['summary'] === 'string' ? entry['summary'].trim() : '',
+      aiSummary: typeof entry['aiSummary'] === 'string' ? entry['aiSummary'].trim() : undefined,
       pubDate: typeof entry['pubDate'] === 'string' ? entry['pubDate'] : undefined,
       isoDate: typeof entry['isoDate'] === 'string' ? entry['isoDate'] : undefined,
       language: typeof entry['language'] === 'string' ? entry['language'] : undefined,

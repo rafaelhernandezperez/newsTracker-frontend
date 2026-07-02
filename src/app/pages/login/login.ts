@@ -144,9 +144,9 @@ export class Login {
         await this.auth.login(this.email.trim(), this.password);
         // Returning user: hydrate the local selection from their server watchlist.
         try {
-          const tickers = await this.watchlist.fetch();
-          if (tickers.length) {
-            this.preferences.setTickers(tickers);
+          const companies = await this.watchlist.fetch();
+          if (companies.length) {
+            this.preferences.setCompanies(companies);
           }
         } catch {
           // Non-fatal: keep whatever is in local prefs.
@@ -167,14 +167,16 @@ export class Login {
 
   protected async continue(): Promise<void> {
     if (this.isLastStep) {
-      const tickers = [...this.selectedTickers];
-      this.preferences.setTickers(tickers);
+      const companies = [...this.selectedTickers].map(
+        (symbol) => COMPANIES.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
+      );
+      this.preferences.setCompanies(companies);
       this.preferences.setTopics([...this.selectedTopics]);
 
       // Persist the selection server-side so the daily digest knows this user's
       // tickers, and enable push so the alert can actually be delivered.
       try {
-        await this.watchlist.sync(tickers);
+        await this.watchlist.sync(companies);
       } catch {
         // Non-fatal: the selection still lives locally.
       }

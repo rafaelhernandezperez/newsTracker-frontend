@@ -13,11 +13,17 @@
     <input
       type="text"
       [(ngModel)]="search"
-      placeholder="Search by company name or ticker"
+      (ngModelChange)="onSearchChange($event)"
+      placeholder="Search any listed company or ticker (e.g. Iberdrola, AMZN)"
       class="search-input"
     />
 
     <div class="company-list">
+      @if (isSearching) {
+        <p class="search-state">Searching listed companies…</p>
+      } @else if (showNoResults) {
+        <p class="search-state">No listed companies match “{{ search }}”.</p>
+      }
       @for (company of filteredCompanies; track company.symbol) {
         <button type="button" class="company-item" [class.company-item-selected]="isChecked(company)" (click)="toggleCompany(company)">
           <div class="company-info">

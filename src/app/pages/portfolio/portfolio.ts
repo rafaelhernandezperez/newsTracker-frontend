@@ -66,7 +66,7 @@ export class PortfolioComponent implements OnInit {
   newsCards: NewsCard[] = [];
 
   ngOnInit(): void {
-    this.selectedCompanies = this.resolveCompanies(this.preferences.tickers());
+    this.selectedCompanies = this.resolveCompanies();
     this.topics = this.preferences.topics();
     this.syncViewModels();
   }
@@ -81,23 +81,25 @@ export class PortfolioComponent implements OnInit {
 
   addCompanies(companies: Company[]): void {
     this.selectedCompanies = [...companies];
-    const tickers = companies.map((company) => company.symbol);
-    this.preferences.setTickers(tickers);
+    this.preferences.setCompanies(companies);
     this.syncViewModels();
     this.closeModal();
 
     // Keep the server watchlist (used by the daily digest) in sync for signed-in
     // users. No-op when logged out — the interceptor simply sends no token.
     if (this.auth.isAuthenticated) {
-      void this.watchlist.sync(tickers);
+      void this.watchlist.sync(companies);
     }
   }
 
-  private resolveCompanies(tickers: string[]): Company[] {
-    return tickers.map(
-      (symbol) =>
-        this.availableCompanies.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
-    );
+  /** Followed companies from prefs, enriched from the catalogue when curated. */
+  private resolveCompanies(): Company[] {
+    return this.preferences
+      .companies()
+      .map(
+        (stored) =>
+          this.availableCompanies.find((company) => company.symbol === stored.symbol) ?? stored,
+      );
   }
 
   private syncViewModels(): void {
@@ -178,7 +180,7 @@ export class PortfolioComponent implements OnInit {
     return {
       company,
       headline: newsItem.title,
-      snippet: newsItem.summary?.trim() ?? '',
+      snippet: newsItem.aiSummary?.trim() || newsItem.summary?.trim() || '',
       publishedAt: this.formatNewsDate(newsItem.isoDate ?? newsItem.pubDate),
       accent: this.getAccentFromNews(newsItem),
       empty: false,

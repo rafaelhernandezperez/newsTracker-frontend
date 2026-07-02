@@ -12,6 +12,8 @@ export interface NewsItem {
   language?: string;
   matchedTickers: string[];
   score: number;
+  /** One-sentence AI summary (Spanish); preferred over the raw RSS snippet. */
+  aiSummary?: string;
   /** AI-classified market impact. Drives the chart marker size. */
   importance?: NewsImportance;
   /** AI-classified tone. Drives the chart marker color. */

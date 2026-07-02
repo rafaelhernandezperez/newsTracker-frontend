@@ -115,8 +115,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     { label: 'Settings', link: '/portfolio' },
   ];
 
-  company =
-    COMPANIES.find((item) => item.symbol === this.symbol) ?? this.createFallbackCompany(this.symbol);
+  company = this.findCompany(this.symbol);
 
   quote: MarketQuote | null = null;
   chartData: MarketChartPoint[] = [];
@@ -159,7 +158,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private mapWatchlistRow(symbol: string, quote: MarketQuote | null): WatchlistRow {
-    const sector = COMPANIES.find((company) => company.symbol === symbol)?.sector;
+    const sector = this.findCompany(symbol)?.sector;
 
     if (!quote) {
       return { symbol, change: '—', direction: 'neutral', sector };
@@ -288,9 +287,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       .subscribe({
         next: (response) => {
           try {
-            this.company =
-              COMPANIES.find((item) => item.symbol === response.ticker) ??
-              this.createFallbackCompany(response.ticker);
+            this.company = this.findCompany(response.ticker);
             this.quote = response.quote;
             this.chartData = this.normalizeChart(response.chart);
             this.history = this.normalizeHistory(response.history);
@@ -607,6 +604,20 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return mode === 'max' ? Math.max(...values) : Math.min(...values);
   }
 
+  /** Resolve a symbol via the curated catalogue, then the user's saved companies. */
+  private findCompany(symbol: string | null): Company | null {
+    if (!symbol) {
+      return null;
+    }
+
+    const upper = symbol.toUpperCase();
+    return (
+      COMPANIES.find((item) => item.symbol === upper) ??
+      this.preferences.companies().find((item) => item.symbol === upper) ??
+      this.createFallbackCompany(upper)
+    );
+  }
+
   private createFallbackCompany(symbol: string | null): Company | null {
     if (!symbol) {
       return null;
@@ -719,7 +730,10 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       source: item.source,
       age: this.formatRelativeDate(publishedAt),
       title: item.title,
-      summary: item.summary?.trim() || 'No summary is available for this article yet.',
+      summary:
+        item.aiSummary?.trim() ||
+        item.summary?.trim() ||
+        'No summary is available for this article yet.',
       link: item.link,
       publishedAt,
       dateKey: this.toDateKey(publishedAt),

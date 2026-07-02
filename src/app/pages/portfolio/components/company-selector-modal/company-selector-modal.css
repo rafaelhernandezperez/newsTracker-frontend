@@ -103,6 +103,13 @@
   margin-top: 1.2rem;
 }
 
+.search-state {
+  margin: 0;
+  padding: 0.4rem 0.2rem;
+  font-size: 0.9rem;
+  color: var(--nt-text-faint);
+}
+
 .company-item {
   display: flex;
   justify-content: space-between;
