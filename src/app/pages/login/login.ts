@@ -191,6 +191,9 @@ export class Login {
 
   private authErrorMessage(error: unknown): string {
     const code = (error as { code?: string })?.code ?? '';
+    if (code === 'auth/invalid-api-key' || code.startsWith('auth/api-key-not-valid')) {
+      return 'Configuración de Firebase incompleta (firebase.config.ts).';
+    }
     switch (code) {
       case 'auth/invalid-credential':
       case 'auth/wrong-password':

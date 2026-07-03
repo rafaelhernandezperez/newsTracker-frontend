@@ -1,6 +1,17 @@
 import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
 
 /**
+ * TEMPORARY: Firebase Auth is not configured yet (placeholders below), so the
+ * app runs without real login: any credentials are accepted locally and the
+ * backend (with AUTH_DISABLED=true in functions/.env) maps every request to a
+ * fixed "dev-user". Push notifications are disabled while this is on.
+ *
+ * To enable real auth: fill in the config below (and in
+ * public/firebase-messaging-sw.js), then set this to false.
+ */
+export const AUTH_DISABLED = true;
+
+/**
  * Firebase web configuration.
  *
  * Replace these placeholders with the values from your Firebase project:
@@ -14,9 +25,9 @@ import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
  */
 export const firebaseConfig = {
   apiKey: 'REPLACE_WITH_API_KEY',
-  authDomain: 'REPLACE_WITH_PROJECT_ID.firebaseapp.com',
-  projectId: 'REPLACE_WITH_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_PROJECT_ID.appspot.com',
+  authDomain: 'financialnewstracker.firebaseapp.com',
+  projectId: 'financialnewstracker',
+  storageBucket: 'financialnewstracker.appspot.com',
   messagingSenderId: 'REPLACE_WITH_SENDER_ID',
   appId: 'REPLACE_WITH_APP_ID',
 };
