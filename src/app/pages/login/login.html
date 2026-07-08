@@ -43,7 +43,7 @@
           The news moving<br class="hidden sm:block" /> your portfolio
         </h1>
         <p class="mt-6 max-w-xl text-base leading-7 text-white/70">
-          Follow the companies and topics you care about, and catch the headlines that
+          Follow the companies you care about, and catch the headlines that
           move them — in one focused dashboard.
         </p>
 
@@ -89,8 +89,8 @@
           <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/70">
             {{
               authMode() === 'login'
-                ? 'Sign in first, then we’ll help you choose the companies and topics you want to follow.'
-                : 'Set up your account first, then personalize the companies and topics you want to follow.'
+                ? 'Sign in first, then we’ll help you choose the companies you want to follow.'
+                : 'Set up your account first, then personalize the companies you want to follow.'
             }}
           </p>
         </div>
@@ -220,26 +220,6 @@
                 class="rounded-full border px-5 py-2 text-sm font-medium transition"
                 [ngClass]="
                   isTickerSelected(option)
-                    ? 'border-white bg-white text-[#1b1b1b]'
-                    : 'border-white/14 bg-transparent text-white/75'
-                "
-              >
-                {{ option }}
-              </button>
-            }
-          </div>
-        }
-
-        @if (activeStep().key === 'topics') {
-          <div class="mt-8 flex flex-wrap justify-center gap-3">
-            @for (option of topicOptions; track option) {
-              <button
-                type="button"
-                (click)="toggleTopic(option)"
-                [attr.aria-pressed]="isTopicSelected(option)"
-                class="rounded-full border px-5 py-2 text-sm font-medium transition"
-                [ngClass]="
-                  isTopicSelected(option)
                     ? 'border-white bg-white text-[#1b1b1b]'
                     : 'border-white/14 bg-transparent text-white/75'
                 "

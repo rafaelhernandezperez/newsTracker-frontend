@@ -61,10 +61,7 @@ export class PortfolioComponent implements OnInit {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard', active: true },
     { label: 'Sentiment Analysis' },
-    { label: 'News Feed' },
-    { label: 'Settings' },
   ];
-  topics: string[] = [];
 
   selectedCompanies: Company[] = [];
   watchlistRows: WatchlistRow[] = [];
@@ -72,7 +69,6 @@ export class PortfolioComponent implements OnInit {
 
   ngOnInit(): void {
     this.selectedCompanies = this.resolveCompanies();
-    this.topics = this.preferences.topics();
     this.syncViewModels();
   }
 

@@ -10,7 +10,7 @@ import { PushService } from '../../core/services/push.service';
 import { AlertPrefsService } from '../../core/services/alert-prefs.service';
 
 type Screen = 'welcome' | 'auth' | 'wizard';
-type StepKey = 'tickers' | 'topics' | 'alerts';
+type StepKey = 'tickers' | 'alerts';
 type AuthMode = 'login' | 'register';
 
 type Step = {
@@ -56,19 +56,13 @@ export class Login {
   protected readonly steps: Step[] = [
     {
       key: 'tickers',
-      eyebrow: 'Step 1 of 3',
+      eyebrow: 'Step 1 of 2',
       title: 'Pick your tickers',
       description: `Choose stocks to follow. You can always change these.`,
     },
     {
-      key: 'topics',
-      eyebrow: 'Step 2 of 3',
-      title: 'Topics you care about',
-      description: `We'll surface news in these areas even for stocks you don't follow.`,
-    },
-    {
       key: 'alerts',
-      eyebrow: 'Step 3 of 3',
+      eyebrow: 'Step 2 of 2',
       title: 'Alert preferences',
       description: 'When should we notify you?',
     },
@@ -77,10 +71,8 @@ export class Login {
   // Keep the selectable tickers aligned with the company catalogue so every
   // choice has matching metadata and resolves to real backend data.
   protected readonly tickerOptions = COMPANIES.map((company) => company.symbol);
-  protected readonly topicOptions = ['AI & chips', 'Interest rates', 'Energy', 'Regulation', 'Earnings', 'M&A'];
 
   protected readonly selectedTickers = new Set<string>(['NVDA', 'BBVA']);
-  protected readonly selectedTopics = new Set<string>(['AI & chips', 'Regulation']);
 
   // Ids match the backend AlertPrefs fields; all on by default, mirroring the
   // server-side default for users who never save preferences.
@@ -179,7 +171,6 @@ export class Login {
         (symbol) => COMPANIES.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
       );
       this.preferences.setCompanies(companies);
-      this.preferences.setTopics([...this.selectedTopics]);
 
       const alertPrefs = Object.fromEntries(
         this.alertPreferences().map((preference) => [preference.id, preference.enabled]),
@@ -233,16 +224,8 @@ export class Login {
     this.toggleSelection(this.selectedTickers, option);
   }
 
-  protected toggleTopic(option: string): void {
-    this.toggleSelection(this.selectedTopics, option);
-  }
-
   protected isTickerSelected(option: string): boolean {
     return this.selectedTickers.has(option);
-  }
-
-  protected isTopicSelected(option: string): boolean {
-    return this.selectedTopics.has(option);
   }
 
   protected toggleAlert(id: string): void {

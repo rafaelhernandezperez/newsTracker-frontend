@@ -219,21 +219,6 @@
   color: var(--nt-neg);
 }
 
-.topic-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-}
-
-.topic-chip {
-  border: 1px solid var(--nt-border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 0.5rem 0.8rem;
-  color: var(--nt-text);
-  font-size: 0.82rem;
-}
-
 .dashboard-main {
   display: flex;
   flex-direction: column;
