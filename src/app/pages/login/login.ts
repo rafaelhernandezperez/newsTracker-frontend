@@ -3,10 +3,11 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { COMPANIES } from '../../core/data/companies.data';
-import { UserPreferencesService } from '../../core/services/user-preferences.service';
+import { AlertPrefs, UserPreferencesService } from '../../core/services/user-preferences.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
 import { PushService } from '../../core/services/push.service';
+import { AlertPrefsService } from '../../core/services/alert-prefs.service';
 
 type Screen = 'welcome' | 'auth' | 'wizard';
 type StepKey = 'tickers' | 'topics' | 'alerts';
@@ -20,7 +21,7 @@ type Step = {
 };
 
 type AlertPreference = {
-  id: string;
+  id: keyof AlertPrefs;
   label: string;
   enabled: boolean;
 };
@@ -38,6 +39,7 @@ export class Login {
   private readonly auth = inject(AuthService);
   private readonly watchlist = inject(WatchlistService);
   private readonly push = inject(PushService);
+  private readonly alertPrefsApi = inject(AlertPrefsService);
 
   protected fullName = '';
   protected email = '';
@@ -80,10 +82,12 @@ export class Login {
   protected readonly selectedTickers = new Set<string>(['NVDA', 'BBVA']);
   protected readonly selectedTopics = new Set<string>(['AI & chips', 'Regulation']);
 
+  // Ids match the backend AlertPrefs fields; all on by default, mirroring the
+  // server-side default for users who never save preferences.
   protected readonly alertPreferences = signal<AlertPreference[]>([
-    { id: 'price-moves', label: 'Big price moves (>3%)', enabled: true },
-    { id: 'high-impact', label: 'High-impact news', enabled: true },
-    { id: 'daily-digest', label: 'Daily digest (9am)', enabled: false },
+    { id: 'priceMoves', label: 'Big price moves (>3%)', enabled: true },
+    { id: 'highImpact', label: 'High-impact news', enabled: true },
+    { id: 'dailyDigest', label: 'Daily digest (9am)', enabled: true },
   ]);
 
   protected readonly activeStep = computed<Step>(() => this.steps[this.currentStep()]);
@@ -148,6 +152,13 @@ export class Login {
         } catch {
           // Non-fatal: keep whatever is in local prefs.
         }
+        // Same for alert preferences: the server copy is what the scheduled
+        // jobs actually honor, so it wins over stale local state.
+        try {
+          this.preferences.setAlertPrefs(await this.alertPrefsApi.fetch());
+        } catch {
+          // Non-fatal: keep local/default prefs.
+        }
         void this.push.enable();
         await this.router.navigate(['/portfolio']);
       } else {
@@ -170,12 +181,23 @@ export class Login {
       this.preferences.setCompanies(companies);
       this.preferences.setTopics([...this.selectedTopics]);
 
-      // Persist the selection server-side so the daily digest knows this user's
-      // tickers, and enable push so the alert can actually be delivered.
+      const alertPrefs = Object.fromEntries(
+        this.alertPreferences().map((preference) => [preference.id, preference.enabled]),
+      ) as AlertPrefs;
+      this.preferences.setAlertPrefs(alertPrefs);
+
+      // Persist the selection + alert prefs server-side so the scheduled jobs
+      // (digest, high-impact news, price moves) know what to send this user,
+      // and enable push so the alerts can actually be delivered.
       try {
         await this.watchlist.sync(companies);
       } catch {
         // Non-fatal: the selection still lives locally.
+      }
+      try {
+        await this.alertPrefsApi.sync(alertPrefs);
+      } catch {
+        // Non-fatal: the prefs still live locally; server keeps defaults.
       }
       void this.push.enable();
 

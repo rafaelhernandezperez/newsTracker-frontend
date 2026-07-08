@@ -12,6 +12,20 @@ const LEGACY_TOPICS_KEY = 'nt.topics';
 /** What we persist per followed company (enough to render + query news well). */
 export type StoredCompany = Pick<Company, 'symbol' | 'name' | 'sector'>;
 
+/** Alert channels chosen in onboarding step 3. Mirrors the backend AlertPrefs. */
+export type AlertPrefs = {
+  priceMoves: boolean;
+  highImpact: boolean;
+  dailyDigest: boolean;
+};
+
+/** Matches the backend default: users who never chose get every alert. */
+export const DEFAULT_ALERT_PREFS: AlertPrefs = {
+  priceMoves: true,
+  highImpact: true,
+  dailyDigest: true,
+};
+
 /**
  * Single source of truth for the companies and topics the user selected during
  * onboarding (or later edited from the watchlist). Persisted to localStorage,
@@ -29,6 +43,7 @@ export class UserPreferencesService {
   /** Symbols of the followed companies, derived from `companies`. */
   readonly tickers = computed(() => this.companies().map((company) => company.symbol));
   readonly topics = signal<string[]>(this.readTopics());
+  readonly alertPrefs = signal<AlertPrefs>(this.readAlertPrefs());
 
   constructor() {
     // Re-hydrate from the (namespaced) storage whenever the account changes.
@@ -40,6 +55,7 @@ export class UserPreferencesService {
       this.uid = uid;
       this.companies.set(this.readCompanies());
       this.topics.set(this.readTopics());
+      this.alertPrefs.set(this.readAlertPrefs());
     });
   }
 
@@ -55,12 +71,43 @@ export class UserPreferencesService {
     this.write(this.topicsKey, cleaned);
   }
 
+  setAlertPrefs(prefs: AlertPrefs): void {
+    const cleaned: AlertPrefs = {
+      priceMoves: Boolean(prefs.priceMoves),
+      highImpact: Boolean(prefs.highImpact),
+      dailyDigest: Boolean(prefs.dailyDigest),
+    };
+    this.alertPrefs.set(cleaned);
+    this.write(this.alertPrefsKey, cleaned);
+  }
+
   private get companiesKey(): string {
     return this.uid ? `nt.${this.uid}.companies` : LEGACY_COMPANIES_KEY;
   }
 
   private get topicsKey(): string {
     return this.uid ? `nt.${this.uid}.topics` : LEGACY_TOPICS_KEY;
+  }
+
+  private get alertPrefsKey(): string {
+    return this.uid ? `nt.${this.uid}.alertPrefs` : 'nt.alertPrefs';
+  }
+
+  private readAlertPrefs(): AlertPrefs {
+    try {
+      const raw = localStorage.getItem(this.alertPrefsKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<AlertPrefs>;
+        return {
+          priceMoves: typeof parsed.priceMoves === 'boolean' ? parsed.priceMoves : DEFAULT_ALERT_PREFS.priceMoves,
+          highImpact: typeof parsed.highImpact === 'boolean' ? parsed.highImpact : DEFAULT_ALERT_PREFS.highImpact,
+          dailyDigest: typeof parsed.dailyDigest === 'boolean' ? parsed.dailyDigest : DEFAULT_ALERT_PREFS.dailyDigest,
+        };
+      }
+    } catch {
+      // fall through to defaults
+    }
+    return { ...DEFAULT_ALERT_PREFS };
   }
 
   private cleanCompanies(companies: StoredCompany[]): StoredCompany[] {
