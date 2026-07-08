@@ -1,9 +1,15 @@
 <div class="overlay" (click)="close.emit()">
-  <div class="modal" (click)="$event.stopPropagation()">
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="company-selector-title"
+    (click)="$event.stopPropagation()"
+  >
     <div class="modal-header">
       <div>
         <p class="eyebrow">Watchlist</p>
-        <h2>Manage your companies</h2>
+        <h2 id="company-selector-title">Manage your companies</h2>
         <p class="intro">Choose which companies stay in your news tracker. Your sidebar and dashboard will update from this selection.</p>
       </div>
 
@@ -25,7 +31,7 @@
         <p class="search-state">No listed companies match “{{ search }}”.</p>
       }
       @for (company of filteredCompanies; track company.symbol) {
-        <button type="button" class="company-item" [class.company-item-selected]="isChecked(company)" (click)="toggleCompany(company)">
+        <button type="button" class="company-item" [class.company-item-selected]="isChecked(company)" [attr.aria-pressed]="isChecked(company)" (click)="toggleCompany(company)">
           <div class="company-info">
             <div class="company-symbol-block">
               <strong>{{ company.symbol }}</strong>

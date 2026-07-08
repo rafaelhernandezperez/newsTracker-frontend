@@ -2,7 +2,8 @@ export interface MarketQuote {
   symbol: string;
   currency?: string | null;
   price: number;
-  change: number;
+  /** Percent change on the day; null when the backend did not report one. */
+  change: number | null;
   volume: number;
   marketCap?: number | null;
   trailingPE?: number | null;

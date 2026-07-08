@@ -211,6 +211,13 @@
   font-weight: 600;
 }
 
+.watchlist-name {
+  margin: 0.2rem 0 0;
+  color: var(--nt-text-faint);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
 .watchlist-change {
   color: var(--nt-pos);
   font-size: 0.82rem;
@@ -648,4 +655,15 @@
   .news-modal-header {
     flex-direction: column;
   }
+}
+
+.logout-button {
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  color: var(--nt-text);
 }

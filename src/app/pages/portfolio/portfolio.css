@@ -447,3 +447,14 @@
     padding: 1.25rem 1.3rem;
   }
 }
+
+.logout-button {
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  color: var(--nt-text);
+}

@@ -1,7 +1,10 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { catchError, map, Observable, shareReplay, throwError } from 'rxjs';
 import { NewsImportance, NewsItem, NewsResponse, NewsSentiment } from '../models/news.model';
+
+/** How long an identical request is served from memory instead of refetched. */
+const CACHE_TTL_MS = 60_000;
 
 const IMPORTANCE_VALUES: NewsImportance[] = [
   'MUY_IMPORTANTE',
@@ -25,6 +28,8 @@ export interface CompanyNewsQuery {
 export class NewsDataService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/news';
+  /** Small in-memory TTL cache so repeat navigation doesn't refetch identical data. */
+  private readonly cache = new Map<string, { expiresAt: number; response$: Observable<NewsResponse> }>();
 
   getCompanyNews(
     ticker: string,
@@ -33,7 +38,6 @@ export class NewsDataService {
   ): Observable<NewsResponse> {
     const params: Record<string, string | number> = {
       limit: query.limit ?? 6,
-      _: Date.now(),
     };
 
     if (companyName) {
@@ -56,16 +60,27 @@ export class NewsDataService {
       params['daysBack'] = query.daysBack;
     }
 
-    return this.http
-      .get<Partial<NewsResponse>>(`${this.baseUrl}/${ticker}`, {
-        headers: new HttpHeaders({
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
+    const key = `${ticker.toUpperCase()}:${JSON.stringify(params)}`;
+    const cached = this.cache.get(key);
+
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.response$;
+    }
+
+    const response$ = this.http
+      .get<Partial<NewsResponse>>(`${this.baseUrl}/${ticker}`, { params })
+      .pipe(
+        map((response) => this.normalizeResponse(response, ticker)),
+        catchError((error) => {
+          // Don't cache failures; the next call should retry.
+          this.cache.delete(key);
+          return throwError(() => error);
         }),
-        params,
-      })
-      .pipe(map((response) => this.normalizeResponse(response, ticker)));
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+
+    this.cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, response$ });
+    return response$;
   }
 
   private normalizeResponse(response: Partial<NewsResponse> | null, ticker: string): NewsResponse {

@@ -15,6 +15,7 @@
             {{ item.label }}
           </a>
         }
+        <button type="button" class="topnav-link logout-button" (click)="logout()">Log out</button>
       </nav>
     </header>
 
@@ -27,6 +28,9 @@
           </div>
 
           <div class="watchlist">
+            @if (isWatchlistLoading()) {
+              <p class="watchlist-empty">Loading your watchlist…</p>
+            } @else {
             @for (row of watchlistRows; track row.company.symbol) {
               <a class="watchlist-item" [routerLink]="['/portfolio', row.company.symbol]">
                 <div class="flex items-center gap-3">
@@ -45,6 +49,7 @@
               </a>
             } @empty {
               <p class="watchlist-empty">No companies yet. Use “Manage” to add some.</p>
+            }
             }
           </div>
         </section>
@@ -72,6 +77,11 @@
         </div>
 
         <section class="news-stack">
+          @if (isNewsLoading()) {
+            <div class="news-empty-state">
+              <p>Loading the latest news for your companies…</p>
+            </div>
+          } @else {
           @for (card of newsCards; track card.company.symbol) {
             <article class="news-card" [class.news-card-green]="card.accent === 'green'" [class.news-card-amber]="card.accent === 'amber'" [class.news-card-violet]="card.accent === 'violet'">
               <div class="news-card-head">
@@ -105,6 +115,7 @@
               <p>No companies in your watchlist yet.</p>
               <button type="button" class="news-card-link" (click)="openModal()">Add companies →</button>
             </div>
+          }
           }
         </section>
       </section>

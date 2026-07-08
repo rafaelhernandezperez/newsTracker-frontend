@@ -19,6 +19,7 @@
             {{ item.label }}
           </a>
         }
+        <button type="button" class="topnav-link logout-button" (click)="logout()">Log out</button>
       </nav>
     </header>
 
@@ -43,7 +44,12 @@
                 >
                   <div class="flex items-center gap-3">
                     <span class="watchlist-dot" [class.watchlist-dot-bank]="row.sector === 'Banca'"></span>
-                    <p class="watchlist-symbol">{{ row.symbol }}</p>
+                    <div>
+                      <p class="watchlist-symbol">{{ row.symbol }}</p>
+                      @if (row.name) {
+                        <p class="watchlist-name">{{ row.name }}</p>
+                      }
+                    </div>
                   </div>
                   <span class="watchlist-change" [class.watchlist-change-negative]="row.direction === 'negative'">
                     {{ row.change }}
@@ -69,7 +75,10 @@
                   [class.change-pill-positive]="quoteDirection === 'positive'"
                   [class.change-pill-negative]="quoteDirection === 'negative'"
                 >
-                  {{ quoteDirection === 'positive' ? '▲' : '▼' }} {{ absoluteChangeLabel }} today
+                  @if (quote?.change != null) {
+                    {{ quoteDirection === 'positive' ? '▲' : '▼' }}
+                  }
+                  {{ absoluteChangeLabel }} today
                 </span>
               </div>
 
@@ -77,8 +86,10 @@
                 {{ company.name }}
                 <span>·</span>
                 {{ company.sector || 'Markets' }}
-                <span>·</span>
-                Updated 2 min ago
+                @if (lastUpdatedLabel) {
+                  <span>·</span>
+                  Updated {{ lastUpdatedLabel }}
+                }
               </p>
 
               <div class="range-tabs">
@@ -135,7 +146,7 @@
             </div>
 
             <div class="related-news-list">
-              @for (item of relatedNewsItems; track item.title) {
+              @for (item of relatedNewsItems; track item.id) {
                 <article class="related-news-item">
                   <div class="related-news-meta">
                     <span class="news-bullet" [class.news-bullet-amber]="item.accent === 'amber'" [class.news-bullet-green]="item.accent === 'green'"></span>

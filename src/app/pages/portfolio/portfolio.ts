@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
-import { catchError, forkJoin, map, of } from 'rxjs';
+import { Router, RouterLink } from '@angular/router';
+import { catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { COMPANIES } from '../../core/data/companies.data';
 import { Company } from '../../core/models/company.model';
 import { MarketQuote } from '../../core/models/market.model';
@@ -47,10 +47,15 @@ export class PortfolioComponent implements OnInit {
   private readonly preferences = inject(UserPreferencesService);
   private readonly auth = inject(AuthService);
   private readonly watchlist = inject(WatchlistService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
 
   isModalOpen = false;
+
+  /** Loading flags so the sidebar/news areas don't flash the empty state on first load. */
+  readonly isWatchlistLoading = signal(false);
+  readonly isNewsLoading = signal(false);
 
   readonly availableCompanies: Company[] = COMPANIES;
   readonly navItems: NavItem[] = [
@@ -92,6 +97,11 @@ export class PortfolioComponent implements OnInit {
     }
   }
 
+  async logout(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigate(['/login']);
+  }
+
   /** Followed companies from prefs, enriched from the catalogue when curated. */
   private resolveCompanies(): Company[] {
     return this.preferences
@@ -116,6 +126,8 @@ export class PortfolioComponent implements OnInit {
       return;
     }
 
+    this.isWatchlistLoading.set(true);
+
     forkJoin(
       visible.map((company) =>
         this.marketDataService.getCompanyMarketData(company.symbol, 5).pipe(
@@ -124,7 +136,10 @@ export class PortfolioComponent implements OnInit {
         ),
       ),
     )
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.isWatchlistLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((rows) => {
         this.watchlistRows = rows;
         this.changeDetectorRef.markForCheck();
@@ -132,11 +147,12 @@ export class PortfolioComponent implements OnInit {
   }
 
   private mapWatchlistRow(company: Company, quote: MarketQuote | null): WatchlistRow {
-    if (!quote) {
+    // Em-dash when the quote is missing or the backend reported no change.
+    if (!quote || quote.change == null) {
       return { company, change: '—', changeDirection: 'neutral' };
     }
 
-    const change = quote.change ?? 0;
+    const change = quote.change;
     const direction = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
     const sign = change > 0 ? '+' : '';
 
@@ -150,6 +166,8 @@ export class PortfolioComponent implements OnInit {
       return;
     }
 
+    this.isNewsLoading.set(true);
+
     forkJoin(
       companies.map((company) =>
         this.newsDataService.getCompanyNews(company.symbol, company.name, { limit: 1 }).pipe(
@@ -158,7 +176,10 @@ export class PortfolioComponent implements OnInit {
         ),
       ),
     )
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => this.isNewsLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((cards) => {
         this.newsCards = cards;
         this.changeDetectorRef.markForCheck();

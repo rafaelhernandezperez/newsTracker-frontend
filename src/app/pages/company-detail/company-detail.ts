@@ -6,6 +6,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  HostListener,
   NgZone,
   OnDestroy,
   OnInit,
@@ -13,8 +14,18 @@ import {
   inject,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, finalize, forkJoin, map, of, timeout } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  Observable,
+  Subject,
+  catchError,
+  distinctUntilChanged,
+  forkJoin,
+  map,
+  of,
+  switchMap,
+  timeout,
+} from 'rxjs';
 import {
   AreaSeries,
   ColorType,
@@ -32,11 +43,13 @@ import {
   MarketChartPoint,
   MarketHistoryPoint,
   MarketQuote,
+  MarketResponse,
 } from '../../core/models/market.model';
 import { MarketDataService } from '../../core/services/market-data.service';
 import { NewsImportance, NewsItem, NewsSentiment } from '../../core/models/news.model';
 import { NewsDataService } from '../../core/services/news-data.service';
 import { UserPreferencesService } from '../../core/services/user-preferences.service';
+import { AuthService } from '../../core/services/auth.service';
 
 type NavItem = {
   label: string;
@@ -46,6 +59,7 @@ type NavItem = {
 
 type WatchlistRow = {
   symbol: string;
+  name?: string;
   change: string;
   direction: 'positive' | 'negative' | 'neutral';
   sector?: string;
@@ -57,6 +71,7 @@ type StatCard = {
 };
 
 type RelatedNewsItem = {
+  id: string;
   source: string;
   age: string;
   title: string;
@@ -75,6 +90,12 @@ type TimeframeOption = {
   days: number;
 };
 
+/** Combined market + news payload for one timeframe selection. */
+type TimeframeData = {
+  market: { response: MarketResponse | null; error: string | null };
+  news: RelatedNewsItem[];
+};
+
 @Component({
   selector: 'app-company-detail',
   standalone: true,
@@ -84,13 +105,18 @@ type TimeframeOption = {
 })
 export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly marketDataService = inject(MarketDataService);
   private readonly newsDataService = inject(NewsDataService);
   private readonly preferences = inject(UserPreferencesService);
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
-  private readonly symbol = this.route.snapshot.paramMap.get('symbol');
+  /** Current ticker; follows the route param so in-page navigation reloads data. */
+  private symbol = this.route.snapshot.paramMap.get('symbol');
+  /** Timeframe selections; switchMap cancels the in-flight requests on a new pick. */
+  private readonly timeframe$ = new Subject<TimeframeOption>();
 
   @ViewChild('chartContainer') private chartContainer?: ElementRef<HTMLDivElement>;
   private chart?: IChartApi;
@@ -107,13 +133,14 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   ];
   activeTimeframe: TimeframeOption['label'] = '1M';
   isWatchlistOpen = false;
-  readonly detailRoute = this.symbol ? `/portfolio/${this.symbol}` : '/portfolio';
-  readonly navItems: NavItem[] = [
-    { label: 'Dashboard', link: '/portfolio' },
-    { label: 'Stock detail', link: this.detailRoute, active: true },
-    { label: 'News Feed', link: '/portfolio' },
-    { label: 'Settings', link: '/portfolio' },
-  ];
+  get navItems(): NavItem[] {
+    const detailRoute = this.symbol ? `/portfolio/${this.symbol}` : '/portfolio';
+
+    return [
+      { label: 'Dashboard', link: '/portfolio' },
+      { label: 'Stock detail', link: detailRoute, active: true },
+    ];
+  }
 
   company = this.findCompany(this.symbol);
 
@@ -125,13 +152,57 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   errorMessage = '';
   relatedNewsItems: RelatedNewsItem[] = [];
   selectedNewsItem: RelatedNewsItem | null = null;
+  /** When the current market snapshot was received (for the "Updated ..." label). */
+  lastUpdatedAt: Date | null = null;
 
   watchlistRows: WatchlistRow[] = [];
 
   ngOnInit(): void {
     this.loadWatchlist();
-    this.loadMarketData();
-    this.loadRelatedNews();
+
+    this.timeframe$
+      .pipe(
+        switchMap((timeframe) => this.fetchTimeframeData(timeframe)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((data) => this.applyTimeframeData(data));
+
+    // Navigating to another company from this page (watchlist links) reuses
+    // this component instance, so follow the route param instead of reading it
+    // once: each new symbol resets the view and reloads market + news data.
+    this.route.paramMap
+      .pipe(
+        map((params) => params.get('symbol')),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((symbol) => this.onSymbolChange(symbol));
+  }
+
+  private onSymbolChange(symbol: string | null): void {
+    this.symbol = symbol;
+    this.company = this.findCompany(symbol);
+
+    if (!symbol) {
+      this.isLoading = false;
+      this.errorMessage = 'No ticker was provided.';
+      this.changeDetectorRef.markForCheck();
+      return;
+    }
+
+    // Clear the previous company's data so it doesn't linger under the loader.
+    this.quote = null;
+    this.chartData = [];
+    this.history = [];
+    this.relatedNewsItems = [];
+    this.selectedNewsItem = null;
+    this.lastUpdatedAt = null;
+    this.errorMessage = '';
+    // On mobile the watchlist is a drawer; close it after picking a company.
+    this.isWatchlistOpen = false;
+    this.buildChart();
+
+    this.timeframe$.next(this.getTimeframeOption(this.activeTimeframe));
   }
 
   private loadWatchlist(): void {
@@ -158,17 +229,20 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private mapWatchlistRow(symbol: string, quote: MarketQuote | null): WatchlistRow {
-    const sector = this.findCompany(symbol)?.sector;
+    const company = this.findCompany(symbol);
+    const name = company?.name;
+    const sector = company?.sector;
 
-    if (!quote) {
-      return { symbol, change: '—', direction: 'neutral', sector };
+    // Em-dash when the quote is missing or the backend reported no change.
+    if (!quote || quote.change == null) {
+      return { symbol, name, change: '—', direction: 'neutral', sector };
     }
 
-    const change = quote.change ?? 0;
+    const change = quote.change;
     const direction = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
     const sign = change > 0 ? '+' : '';
 
-    return { symbol, change: `${sign}${change.toFixed(1)}%`, direction, sector };
+    return { symbol, name, change: `${sign}${change.toFixed(1)}%`, direction, sector };
   }
 
   toggleWatchlist(): void {
@@ -183,22 +257,44 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.selectedNewsItem = null;
   }
 
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.selectedNewsItem) {
+      this.closeNewsModal();
+    }
+  }
+
+  async logout(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigate(['/login']);
+  }
+
   selectTimeframe(timeframe: TimeframeOption): void {
     if (timeframe.label === this.activeTimeframe || !this.symbol) {
       return;
     }
 
     this.activeTimeframe = timeframe.label;
-    this.loadMarketData(timeframe.days);
-    this.loadRelatedNews(timeframe);
+    this.timeframe$.next(timeframe);
   }
 
   get absoluteChangeLabel(): string {
-    if (!this.quote) {
-      return '0.0%';
+    if (this.quote?.change == null) {
+      return '—';
     }
 
     return `${Math.abs(this.quote.change).toFixed(1)}%`;
+  }
+
+  get lastUpdatedLabel(): string {
+    if (!this.lastUpdatedAt) {
+      return '';
+    }
+
+    return new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(this.lastUpdatedAt);
   }
 
   get statCards(): StatCard[] {
@@ -259,65 +355,31 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   get quoteDirection(): 'positive' | 'negative' {
-    return this.quote && this.quote.change < 0 ? 'negative' : 'positive';
+    return this.quote?.change != null && this.quote.change < 0 ? 'negative' : 'positive';
   }
 
-  private loadMarketData(days: number = this.getDaysForTimeframe(this.activeTimeframe)): void {
-    const symbol = this.symbol;
-
-    if (!symbol) {
-      this.isLoading = false;
-      this.errorMessage = 'No ticker was provided.';
-      return;
-    }
+  /**
+   * Fire the market and news requests for one timeframe together. Consumed via
+   * switchMap so a newer selection cancels both in-flight requests, and
+   * `buildChart` runs exactly once per timeframe with both results in hand.
+   */
+  private fetchTimeframeData(timeframe: TimeframeOption): Observable<TimeframeData> {
+    const symbol = this.symbol as string;
 
     this.isLoading = true;
     this.errorMessage = '';
+    this.changeDetectorRef.markForCheck();
 
-    this.marketDataService
-      .getCompanyMarketData(symbol, days)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        timeout(10000),
-        finalize(() => {
-          this.isLoading = false;
-          this.changeDetectorRef.markForCheck();
-        }),
-      )
-      .subscribe({
-        next: (response) => {
-          try {
-            this.company = this.findCompany(response.ticker);
-            this.quote = response.quote;
-            this.chartData = this.normalizeChart(response.chart);
-            this.history = this.normalizeHistory(response.history);
-            this.buildChart();
-            this.changeDetectorRef.markForCheck();
-          } catch (error) {
-            console.error('[company-detail] Error processing market response:', error);
-            this.errorMessage = 'The backend responded, but the payload could not be processed.';
-            this.changeDetectorRef.markForCheck();
-          }
-        },
-        error: (error) => {
-          console.error('[company-detail] Market request failed:', error);
-          this.errorMessage = this.getMarketErrorMessage(error);
-          this.changeDetectorRef.markForCheck();
-        },
-      });
-  }
+    const market$ = this.marketDataService.getCompanyMarketData(symbol, timeframe.days).pipe(
+      timeout(10000),
+      map((response) => ({ response, error: null as string | null })),
+      catchError((error) => {
+        console.error('[company-detail] Market request failed:', error);
+        return of({ response: null, error: this.getMarketErrorMessage(error) });
+      }),
+    );
 
-  private loadRelatedNews(
-    timeframe: TimeframeOption = this.getTimeframeOption(this.activeTimeframe),
-  ): void {
-    const symbol = this.symbol;
-
-    if (!symbol) {
-      this.relatedNewsItems = [];
-      return;
-    }
-
-    this.newsDataService
+    const news$ = this.newsDataService
       .getCompanyNews(symbol, this.company?.name, {
         // Scale with the window so longer timeframes get more dated markers
         // spread across the chart (the marker layer dedupes by day).
@@ -325,19 +387,36 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         range: timeframe.label,
         daysBack: timeframe.days,
       })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (response) => {
-          this.relatedNewsItems = response.items.map((item) => this.mapRelatedNewsItem(item));
-          this.buildChart();
-          this.changeDetectorRef.markForCheck();
-        },
-        error: () => {
-          this.relatedNewsItems = [];
-          this.buildChart();
-          this.changeDetectorRef.markForCheck();
-        },
-      });
+      .pipe(
+        map((response) => response.items.map((item) => this.mapRelatedNewsItem(item))),
+        catchError(() => of([] as RelatedNewsItem[])),
+      );
+
+    return forkJoin({ market: market$, news: news$ });
+  }
+
+  /** Apply a timeframe's market + news payload and redraw the chart once. */
+  private applyTimeframeData({ market, news }: TimeframeData): void {
+    this.isLoading = false;
+    this.relatedNewsItems = news;
+
+    if (market.response) {
+      try {
+        this.company = this.findCompany(market.response.ticker);
+        this.quote = market.response.quote;
+        this.chartData = market.response.chart;
+        this.history = market.response.history;
+        this.lastUpdatedAt = new Date();
+      } catch (error) {
+        console.error('[company-detail] Error processing market response:', error);
+        this.errorMessage = 'The backend responded, but the payload could not be processed.';
+      }
+    } else {
+      this.errorMessage = market.error ?? 'Market data could not be loaded.';
+    }
+
+    this.buildChart();
+    this.changeDetectorRef.markForCheck();
   }
 
   ngAfterViewInit(): void {
@@ -584,10 +663,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return 40;
   }
 
-  private getDaysForTimeframe(label: TimeframeOption['label']): number {
-    return this.timeframeOptions.find((option) => option.label === label)?.days ?? 30;
-  }
-
   private getTimeframeOption(label: TimeframeOption['label']): TimeframeOption {
     return this.timeframeOptions.find((option) => option.label === label) ?? this.timeframeOptions[1];
   }
@@ -630,83 +705,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     };
   }
 
-  private normalizeChart(chart: unknown): MarketChartPoint[] {
-    if (!Array.isArray(chart)) {
-      return [];
-    }
-
-    return chart
-      .map((point): MarketChartPoint | null => {
-        if (!point || typeof point !== 'object') {
-          return null;
-        }
-
-        const entry = point as Record<string, unknown>;
-        const rawValue = entry['value'];
-        const value =
-          typeof rawValue === 'number'
-            ? rawValue
-            : typeof rawValue === 'string'
-              ? Number(rawValue)
-              : null;
-
-        if (value === null || Number.isNaN(value)) {
-          return null;
-        }
-
-        return {
-          date: typeof entry['date'] === 'string' ? entry['date'] : String(entry['date'] ?? ''),
-          value,
-        };
-      })
-      .filter((point): point is MarketChartPoint => point !== null);
-  }
-
-  private normalizeHistory(history: unknown): MarketHistoryPoint[] {
-    if (!Array.isArray(history)) {
-      return [];
-    }
-
-    return history
-      .map((point): MarketHistoryPoint | null => {
-        if (!point || typeof point !== 'object') {
-          return null;
-        }
-
-        const entry = point as Record<string, unknown>;
-        const date = typeof entry['date'] === 'string' ? entry['date'] : String(entry['date'] ?? '');
-
-        if (!date) {
-          return null;
-        }
-
-        return {
-          date,
-          open: this.toNumber(entry['open']),
-          high: this.toNumber(entry['high']),
-          low: this.toNumber(entry['low']),
-          close: this.toNumber(entry['close']),
-          volume: this.toNumber(entry['volume']),
-        };
-      })
-      .filter((point): point is MarketHistoryPoint => point !== null);
-  }
-
-  private toNumber(value: unknown): number | null {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-
-    return null;
-  }
-
   private getMarketErrorMessage(error: unknown): string {
     if (!(error instanceof HttpErrorResponse)) {
       return 'The market request timed out or returned an invalid response.';
@@ -727,6 +725,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const publishedAt = item.isoDate ?? item.pubDate;
 
     return {
+      id: item.id,
       source: item.source,
       age: this.formatRelativeDate(publishedAt),
       title: item.title,

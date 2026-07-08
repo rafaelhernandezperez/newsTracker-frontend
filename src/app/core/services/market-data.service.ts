@@ -1,6 +1,6 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { catchError, map, Observable, shareReplay, throwError } from 'rxjs';
 import {
   MarketChartPoint,
   MarketHistoryPoint,
@@ -9,6 +9,9 @@ import {
   RawMarketResponse,
 } from '../models/market.model';
 
+/** How long an identical request is served from memory instead of refetched. */
+const CACHE_TTL_MS = 60_000;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -16,21 +19,31 @@ export class MarketDataService {
   private readonly http = inject(HttpClient);
 
   private readonly baseUrl = '/api/market';
+  /** Small in-memory TTL cache so repeat navigation doesn't refetch identical data. */
+  private readonly cache = new Map<string, { expiresAt: number; response$: Observable<MarketResponse> }>();
 
   getCompanyMarketData(ticker: string, days: number = 30): Observable<MarketResponse> {
-    return this.http
-      .get<RawMarketResponse>(`${this.baseUrl}/${ticker}`, {
-        headers: new HttpHeaders({
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
+    const key = `${ticker.toUpperCase()}:${days}`;
+    const cached = this.cache.get(key);
+
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.response$;
+    }
+
+    const response$ = this.http
+      .get<RawMarketResponse>(`${this.baseUrl}/${ticker}`, { params: { days } })
+      .pipe(
+        map((response) => this.normalizeResponse(response, ticker)),
+        catchError((error) => {
+          // Don't cache failures; the next call should retry.
+          this.cache.delete(key);
+          return throwError(() => error);
         }),
-        params: {
-          days,
-          _: Date.now(),
-        },
-      })
-      .pipe(map((response) => this.normalizeResponse(response, ticker)));
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+
+    this.cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, response$ });
+    return response$;
   }
 
   private normalizeResponse(response: RawMarketResponse | null, requestedTicker: string): MarketResponse {
@@ -57,7 +70,9 @@ export class MarketDataService {
       symbol: String(rawQuote?.symbol || requestedTicker).toUpperCase(),
       currency: typeof rawQuote?.currency === 'string' ? rawQuote.currency : null,
       price: this.toNumber(rawQuote?.price, fallbackPrice) ?? fallbackPrice,
-      change: this.toNumber(rawQuote?.change, 0) ?? 0,
+      // null (not 0) when the backend didn't report a change, so the UI can
+      // show "unknown" instead of a fabricated +0.0%.
+      change: this.toNumber(rawQuote?.change, null),
       volume: this.toNumber(rawQuote?.volume, 0) ?? 0,
       marketCap: this.toNumber(rawQuote?.marketCap, null),
       trailingPE: this.toNumber(rawQuote?.trailingPE, null),

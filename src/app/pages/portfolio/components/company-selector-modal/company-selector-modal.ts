@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnInit,
+  Output,
+  inject,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, tap } from 'rxjs';
@@ -53,6 +62,11 @@ export class CompanySelectorModalComponent implements OnInit {
 
   onSearchChange(term: string): void {
     this.searchTerms.next(term);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.close.emit();
   }
 
   /**
