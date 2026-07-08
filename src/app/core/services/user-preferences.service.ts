@@ -1,37 +1,66 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { Company } from '../models/company.model';
 import { COMPANIES } from '../data/companies.data';
+import { AuthService } from './auth.service';
 
-const COMPANIES_KEY = 'nt.companies';
+/** Legacy global keys (pre account-namespacing). Migrated to the first uid that logs in. */
+const LEGACY_COMPANIES_KEY = 'nt.companies';
 /** Pre-search versions stored only ticker symbols; migrated on first read. */
 const LEGACY_TICKERS_KEY = 'nt.tickers';
-const TOPICS_KEY = 'nt.topics';
+const LEGACY_TOPICS_KEY = 'nt.topics';
 
 /** What we persist per followed company (enough to render + query news well). */
 export type StoredCompany = Pick<Company, 'symbol' | 'name' | 'sector'>;
 
 /**
  * Single source of truth for the companies and topics the user selected during
- * onboarding (or later edited from the watchlist). Persisted to localStorage so
- * the selection survives reloads, and exposed as signals so views stay in sync.
+ * onboarding (or later edited from the watchlist). Persisted to localStorage,
+ * namespaced by Firebase uid so accounts sharing a browser don't share
+ * watchlists, and exposed as signals so views stay in sync. Re-hydrates
+ * whenever the signed-in user changes (login/logout).
  */
 @Injectable({ providedIn: 'root' })
 export class UserPreferencesService {
+  private readonly auth = inject(AuthService);
+
+  private uid: string | null = this.auth.user()?.uid ?? null;
+
   readonly companies = signal<StoredCompany[]>(this.readCompanies());
   /** Symbols of the followed companies, derived from `companies`. */
   readonly tickers = computed(() => this.companies().map((company) => company.symbol));
-  readonly topics = signal<string[]>(this.readStringList(TOPICS_KEY));
+  readonly topics = signal<string[]>(this.readTopics());
+
+  constructor() {
+    // Re-hydrate from the (namespaced) storage whenever the account changes.
+    effect(() => {
+      const uid = this.auth.user()?.uid ?? null;
+      if (uid === this.uid) {
+        return;
+      }
+      this.uid = uid;
+      this.companies.set(this.readCompanies());
+      this.topics.set(this.readTopics());
+    });
+  }
 
   setCompanies(companies: StoredCompany[]): void {
     const cleaned = this.cleanCompanies(companies);
     this.companies.set(cleaned);
-    this.write(COMPANIES_KEY, cleaned);
+    this.write(this.companiesKey, cleaned);
   }
 
   setTopics(topics: string[]): void {
     const cleaned = [...new Set(topics.map((value) => value.trim()).filter(Boolean))];
     this.topics.set(cleaned);
-    this.write(TOPICS_KEY, cleaned);
+    this.write(this.topicsKey, cleaned);
+  }
+
+  private get companiesKey(): string {
+    return this.uid ? `nt.${this.uid}.companies` : LEGACY_COMPANIES_KEY;
+  }
+
+  private get topicsKey(): string {
+    return this.uid ? `nt.${this.uid}.topics` : LEGACY_TOPICS_KEY;
   }
 
   private cleanCompanies(companies: StoredCompany[]): StoredCompany[] {
@@ -50,7 +79,7 @@ export class UserPreferencesService {
 
   private readCompanies(): StoredCompany[] {
     try {
-      const raw = localStorage.getItem(COMPANIES_KEY);
+      const raw = localStorage.getItem(this.companiesKey) ?? this.migrateLegacy('companies');
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (Array.isArray(parsed)) {
@@ -72,13 +101,59 @@ export class UserPreferencesService {
               COMPANIES.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
           ),
         );
-        this.write(COMPANIES_KEY, migrated);
+        this.write(this.companiesKey, migrated);
+        localStorage.removeItem(LEGACY_TICKERS_KEY);
         return migrated;
       }
     } catch {
       // fall through to empty
     }
     return [];
+  }
+
+  private readTopics(): string[] {
+    try {
+      const raw = localStorage.getItem(this.topicsKey) ?? this.migrateLegacy('topics');
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return [
+            ...new Set(
+              parsed
+                .filter((value): value is string => typeof value === 'string')
+                .map((value) => value.trim())
+                .filter(Boolean),
+            ),
+          ];
+        }
+      }
+    } catch {
+      // fall through to empty
+    }
+    return [];
+  }
+
+  /**
+   * One-time move of the legacy global keys to the current account's namespace,
+   * so the first user to sign in on this browser keeps their selection and any
+   * later account starts clean. Returns the migrated raw value, if any.
+   */
+  private migrateLegacy(kind: 'companies' | 'topics'): string | null {
+    if (!this.uid) {
+      return null;
+    }
+    try {
+      const legacyKey = kind === 'companies' ? LEGACY_COMPANIES_KEY : LEGACY_TOPICS_KEY;
+      const raw = localStorage.getItem(legacyKey);
+      if (raw === null) {
+        return null;
+      }
+      localStorage.setItem(kind === 'companies' ? this.companiesKey : this.topicsKey, raw);
+      localStorage.removeItem(legacyKey);
+      return raw;
+    } catch {
+      return null;
+    }
   }
 
   private readStringList(key: string): string[] {

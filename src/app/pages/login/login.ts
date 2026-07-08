@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { COMPANIES } from '../../core/data/companies.data';
@@ -43,12 +43,13 @@ export class Login {
   protected email = '';
   protected password = '';
   protected confirmPassword = '';
-  protected authError = '';
-  protected authBusy = false;
+  // Signals so state mutated after `await` still triggers zoneless change detection.
+  protected readonly authError = signal('');
+  protected readonly authBusy = signal(false);
 
-  protected screen: Screen = 'welcome';
-  protected currentStep = 0;
-  protected authMode: AuthMode = 'login';
+  protected readonly screen = signal<Screen>('welcome');
+  protected readonly currentStep = signal(0);
+  protected readonly authMode = signal<AuthMode>('login');
 
   protected readonly steps: Step[] = [
     {
@@ -79,68 +80,64 @@ export class Login {
   protected readonly selectedTickers = new Set<string>(['NVDA', 'BBVA']);
   protected readonly selectedTopics = new Set<string>(['AI & chips', 'Regulation']);
 
-  protected alertPreferences: AlertPreference[] = [
+  protected readonly alertPreferences = signal<AlertPreference[]>([
     { id: 'price-moves', label: 'Big price moves (>3%)', enabled: true },
     { id: 'high-impact', label: 'High-impact news', enabled: true },
     { id: 'daily-digest', label: 'Daily digest (9am)', enabled: false },
-  ];
+  ]);
 
-  protected get activeStep(): Step {
-    return this.steps[this.currentStep];
-  }
+  protected readonly activeStep = computed<Step>(() => this.steps[this.currentStep()]);
 
-  protected get isLastStep(): boolean {
-    return this.currentStep === this.steps.length - 1;
-  }
+  protected readonly isLastStep = computed(() => this.currentStep() === this.steps.length - 1);
 
   protected startFlow(): void {
-    this.authMode = 'login';
-    this.screen = 'auth';
+    this.authMode.set('login');
+    this.screen.set('auth');
   }
 
   protected enterWizard(): void {
-    this.screen = 'wizard';
+    this.screen.set('wizard');
   }
 
   protected setAuthMode(mode: AuthMode): void {
-    this.authMode = mode;
+    this.authMode.set(mode);
   }
 
   protected goBack(): void {
-    if (this.screen === 'auth') {
-      this.screen = 'welcome';
+    if (this.screen() === 'auth') {
+      this.screen.set('welcome');
       return;
     }
 
-    if (this.currentStep > 0) {
-      this.currentStep -= 1;
+    if (this.currentStep() > 0) {
+      this.currentStep.update((step) => step - 1);
       return;
     }
 
-    this.screen = 'auth';
+    this.screen.set('auth');
   }
 
   /** Submit the email/password form: log in (existing user) or start onboarding. */
   protected async submitAuth(): Promise<void> {
-    if (this.authBusy) {
+    if (this.authBusy()) {
       return;
     }
 
-    this.authError = '';
+    this.authError.set('');
 
     if (!this.email.trim() || !this.password) {
-      this.authError = 'Introduce tu email y contraseña.';
+      this.authError.set('Introduce tu email y contraseña.');
       return;
     }
 
-    if (this.authMode === 'register' && this.password !== this.confirmPassword) {
-      this.authError = 'Las contraseñas no coinciden.';
+    if (this.authMode() === 'register' && this.password !== this.confirmPassword) {
+      this.authError.set('Las contraseñas no coinciden.');
       return;
     }
 
-    this.authBusy = true;
+    this.authBusy.set(true);
     try {
-      if (this.authMode === 'login') {
+      if (this.authMode() === 'login') {
         await this.auth.login(this.email.trim(), this.password);
         // Returning user: hydrate the local selection from their server watchlist.
         try {
@@ -159,14 +156,14 @@ export class Login {
         this.enterWizard();
       }
     } catch (error) {
-      this.authError = this.authErrorMessage(error);
+      this.authError.set(this.authErrorMessage(error));
     } finally {
-      this.authBusy = false;
+      this.authBusy.set(false);
     }
   }
 
   protected async continue(): Promise<void> {
-    if (this.isLastStep) {
+    if (this.isLastStep()) {
       const companies = [...this.selectedTickers].map(
         (symbol) => COMPANIES.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
       );
@@ -186,7 +183,7 @@ export class Login {
       return;
     }
 
-    this.currentStep += 1;
+    this.currentStep.update((step) => step + 1);
   }
 
   private authErrorMessage(error: unknown): string {
@@ -227,10 +224,12 @@ export class Login {
   }
 
   protected toggleAlert(id: string): void {
-    this.alertPreferences = this.alertPreferences.map((preference) =>
-      preference.id === id
-        ? { ...preference, enabled: !preference.enabled }
-        : preference,
+    this.alertPreferences.update((preferences) =>
+      preferences.map((preference) =>
+        preference.id === id
+          ? { ...preference, enabled: !preference.enabled }
+          : preference,
+      ),
     );
   }
 

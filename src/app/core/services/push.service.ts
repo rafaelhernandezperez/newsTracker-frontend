@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getMessaging, getToken, isSupported, onMessage, type Messaging } from 'firebase/messaging';
-import { AUTH_DISABLED, getFirebaseApp, firebaseVapidKey } from '../firebase/firebase.config';
+import { getFirebaseApp, firebaseVapidKey } from '../firebase/firebase.config';
 
 /**
  * FCM Web Push registration for the desktop browser app. Requests notification
@@ -21,8 +21,8 @@ export class PushService {
    * than once; returns true if a token was registered.
    */
   async enable(): Promise<boolean> {
-    if (AUTH_DISABLED) {
-      // FCM needs the real Firebase config; skip until auth is enabled.
+    if (firebaseVapidKey.startsWith('REPLACE_')) {
+      // FCM needs a Web Push certificate (VAPID key); skip until it is set.
       return false;
     }
     try {

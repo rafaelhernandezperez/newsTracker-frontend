@@ -1,12 +1,24 @@
 import { Routes } from '@angular/router';
-import { Login } from './pages/login/login';
-import { CompanyDetailComponent } from './pages/company-detail/company-detail';
-import { PortfolioComponent } from './pages/portfolio/portfolio';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard, loginGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: 'login', component: Login },
-  { path: 'portfolio', component: PortfolioComponent, canActivate: [authGuard] },
-  { path: 'portfolio/:symbol', component: CompanyDetailComponent, canActivate: [authGuard] },
+  {
+    path: 'login',
+    loadComponent: () => import('./pages/login/login').then((m) => m.Login),
+    canActivate: [loginGuard],
+  },
+  {
+    path: 'portfolio',
+    loadComponent: () => import('./pages/portfolio/portfolio').then((m) => m.PortfolioComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'portfolio/:symbol',
+    loadComponent: () =>
+      import('./pages/company-detail/company-detail').then((m) => m.CompanyDetailComponent),
+    canActivate: [authGuard],
+  },
+  // Unknown URLs land on the dashboard; the guard bounces logged-out users to /login.
+  { path: '**', redirectTo: 'portfolio' },
 ];

@@ -3,17 +3,14 @@ import { inject } from '@angular/core';
 import { from, switchMap } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
-// Endpoints that require a Firebase ID token. /news and /market are public.
-const AUTHED_PATHS = ['/api/watchlist', '/api/devices'];
-
 /**
- * Attaches `Authorization: Bearer <idToken>` to requests against the
- * authenticated backend routes when a user is signed in.
+ * Attaches `Authorization: Bearer <idToken>` to every backend request
+ * (relative `/api/*` URLs) when a user is signed in. The relative-prefix match
+ * guarantees third-party absolute URLs never receive tokens. Requests made
+ * while logged out pass through unchanged.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const needsAuth = AUTHED_PATHS.some((path) => req.url.startsWith(path));
-
-  if (!needsAuth) {
+  if (!req.url.startsWith('/api/')) {
     return next(req);
   }
 

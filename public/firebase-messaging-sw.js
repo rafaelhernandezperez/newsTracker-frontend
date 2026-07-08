@@ -10,12 +10,12 @@ importScripts('https://www.gstatic.com/firebasejs/12.14.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/12.14.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: 'REPLACE_WITH_API_KEY',
+  apiKey: 'AIzaSyAIcHW9QHe268UODLYCMH5p35rNOrQdOPA',
   authDomain: 'financialnewstracker.firebaseapp.com',
   projectId: 'financialnewstracker',
-  storageBucket: 'financialnewstracker.appspot.com',
-  messagingSenderId: 'REPLACE_WITH_SENDER_ID',
-  appId: 'REPLACE_WITH_APP_ID',
+  storageBucket: 'financialnewstracker.firebasestorage.app',
+  messagingSenderId: '122616090189',
+  appId: '1:122616090189:web:c2d74d3e8c353fb4d41604',
 });
 
 const messaging = firebase.messaging();

@@ -35,7 +35,7 @@
     <div class="vignette"></div>
   </div>
 
-  @if (screen === 'welcome') {
+  @if (screen() === 'welcome') {
     <section class="relative flex min-h-screen items-center justify-center px-6 py-12 sm:px-10">
       <div class="relative z-10 flex w-full max-w-5xl flex-col items-center text-center">
         <p class="text-xs font-medium uppercase tracking-[0.45em] text-white/70">NewsTracker</p>
@@ -57,7 +57,7 @@
         </button>
       </div>
     </section>
-  } @else if (screen === 'auth') {
+  } @else if (screen() === 'auth') {
     <section class="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
       <div
         class="relative z-10 w-full max-w-[25rem] rounded-[2rem] border border-white/12 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-8"
@@ -67,7 +67,7 @@
             type="button"
             (click)="setAuthMode('login')"
             class="rounded-full px-4 py-2 text-sm font-medium transition"
-            [ngClass]="authMode === 'login' ? 'bg-white text-[#171717]' : 'text-white/72 hover:text-white'"
+            [ngClass]="authMode() === 'login' ? 'bg-white text-[#171717]' : 'text-white/72 hover:text-white'"
           >
             Log in
           </button>
@@ -75,7 +75,7 @@
             type="button"
             (click)="setAuthMode('register')"
             class="rounded-full px-4 py-2 text-sm font-medium transition"
-            [ngClass]="authMode === 'register' ? 'bg-white text-[#171717]' : 'text-white/72 hover:text-white'"
+            [ngClass]="authMode() === 'register' ? 'bg-white text-[#171717]' : 'text-white/72 hover:text-white'"
           >
             Register
           </button>
@@ -84,11 +84,11 @@
         <div class="text-center">
           <p class="text-xs font-medium uppercase tracking-[0.38em] text-white/70">Account</p>
           <h2 class="mt-5 text-[2rem] font-semibold tracking-[-0.05em] text-white">
-            {{ authMode === 'login' ? 'Log in to your account' : 'Create your account' }}
+            {{ authMode() === 'login' ? 'Log in to your account' : 'Create your account' }}
           </h2>
           <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/70">
             {{
-              authMode === 'login'
+              authMode() === 'login'
                 ? 'Sign in first, then we’ll help you choose the companies and topics you want to follow.'
                 : 'Set up your account first, then personalize the companies and topics you want to follow.'
             }}
@@ -96,12 +96,13 @@
         </div>
 
         <form class="mt-8 space-y-4" (submit)="$event.preventDefault(); submitAuth()">
-          @if (authMode === 'register') {
+          @if (authMode() === 'register') {
             <label class="block">
               <span class="mb-2 block text-sm font-medium text-white/70">Full name</span>
               <input
                 type="text"
                 name="fullName"
+                autocomplete="name"
                 [(ngModel)]="fullName"
                 placeholder="Your name"
                 class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/45 focus:border-white/25"
@@ -114,6 +115,8 @@
             <input
               type="email"
               name="email"
+              autocomplete="email"
+              required
               [(ngModel)]="email"
               placeholder="name@email.com"
               class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/45 focus:border-white/25"
@@ -125,18 +128,22 @@
             <input
               type="password"
               name="password"
+              [attr.autocomplete]="authMode() === 'login' ? 'current-password' : 'new-password'"
+              required
               [(ngModel)]="password"
               placeholder="••••••••"
               class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/45 focus:border-white/25"
             />
           </label>
 
-          @if (authMode === 'register') {
+          @if (authMode() === 'register') {
             <label class="block">
               <span class="mb-2 block text-sm font-medium text-white/70">Confirm password</span>
               <input
                 type="password"
                 name="confirmPassword"
+                autocomplete="new-password"
+                required
                 [(ngModel)]="confirmPassword"
                 placeholder="••••••••"
                 class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/45 focus:border-white/25"
@@ -144,33 +151,33 @@
             </label>
           }
 
-          @if (authError) {
+          @if (authError()) {
             <p class="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {{ authError }}
+              {{ authError() }}
             </p>
           }
 
           <button
             type="submit"
-            [disabled]="authBusy"
+            [disabled]="authBusy()"
             class="mt-3 w-full rounded-2xl border border-white/18 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {{ authBusy ? 'Please wait…' : (authMode === 'login' ? 'Continue' : 'Create account') }}
+            {{ authBusy() ? 'Please wait…' : (authMode() === 'login' ? 'Continue' : 'Create account') }}
           </button>
         </form>
 
         <p class="mt-5 text-center text-sm text-white/72">
           {{
-            authMode === 'login'
+            authMode() === 'login'
               ? 'First time here?'
               : 'Already have an account?'
           }}
           <button
             type="button"
             class="ml-1 font-medium text-white/80 transition hover:text-white"
-            (click)="setAuthMode(authMode === 'login' ? 'register' : 'login')"
+            (click)="setAuthMode(authMode() === 'login' ? 'register' : 'login')"
           >
-            {{ authMode === 'login' ? 'Register' : 'Log in' }}
+            {{ authMode() === 'login' ? 'Register' : 'Log in' }}
           </button>
         </p>
 
@@ -192,23 +199,24 @@
           @for (step of steps; track step.key; let index = $index) {
             <span
               class="h-2.5 w-2.5 rounded-full transition"
-              [ngClass]="index === currentStep ? 'bg-white' : 'bg-white/30'"
+              [ngClass]="index === currentStep() ? 'bg-white' : 'bg-white/30'"
             ></span>
           }
         </div>
 
         <div class="mt-8 text-center">
-          <p class="text-sm text-white/72">{{ activeStep.eyebrow }}</p>
-          <h2 class="mt-4 text-[1.9rem] font-semibold tracking-[-0.04em] text-white">{{ activeStep.title }}</h2>
-          <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/72">{{ activeStep.description }}</p>
+          <p class="text-sm text-white/72">{{ activeStep().eyebrow }}</p>
+          <h2 class="mt-4 text-[1.9rem] font-semibold tracking-[-0.04em] text-white">{{ activeStep().title }}</h2>
+          <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/72">{{ activeStep().description }}</p>
         </div>
 
-        @if (activeStep.key === 'tickers') {
+        @if (activeStep().key === 'tickers') {
           <div class="mt-8 flex flex-wrap justify-center gap-3">
             @for (option of tickerOptions; track option) {
               <button
                 type="button"
                 (click)="toggleTicker(option)"
+                [attr.aria-pressed]="isTickerSelected(option)"
                 class="rounded-full border px-5 py-2 text-sm font-medium transition"
                 [ngClass]="
                   isTickerSelected(option)
@@ -222,12 +230,13 @@
           </div>
         }
 
-        @if (activeStep.key === 'topics') {
+        @if (activeStep().key === 'topics') {
           <div class="mt-8 flex flex-wrap justify-center gap-3">
             @for (option of topicOptions; track option) {
               <button
                 type="button"
                 (click)="toggleTopic(option)"
+                [attr.aria-pressed]="isTopicSelected(option)"
                 class="rounded-full border px-5 py-2 text-sm font-medium transition"
                 [ngClass]="
                   isTopicSelected(option)
@@ -241,12 +250,13 @@
           </div>
         }
 
-        @if (activeStep.key === 'alerts') {
+        @if (activeStep().key === 'alerts') {
           <div class="mt-8 space-y-3">
-            @for (preference of alertPreferences; track preference.id) {
+            @for (preference of alertPreferences(); track preference.id) {
               <button
                 type="button"
                 (click)="toggleAlert(preference.id)"
+                [attr.aria-pressed]="preference.enabled"
                 class="flex w-full items-center justify-between gap-4 border-b border-white/10 py-3 text-left last:border-b-0"
               >
                 <span class="text-sm font-medium text-white/90">{{ preference.label }}</span>
@@ -271,7 +281,7 @@
             (click)="goBack()"
             class="flex-1 rounded-2xl border border-white/12 px-4 py-3 text-sm font-medium text-white/70 transition hover:border-white/20 hover:text-white"
           >
-            {{ currentStep === 0 ? 'Back' : 'Previous' }}
+            {{ currentStep() === 0 ? 'Back' : 'Previous' }}
           </button>
 
           <button
@@ -279,7 +289,7 @@
             (click)="continue()"
             class="flex-1 rounded-2xl border border-white/18 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
           >
-            {{ isLastStep ? 'Get started' : 'Next' }}
+            {{ isLastStep() ? 'Get started' : 'Next' }}
           </button>
         </div>
       </div>
