@@ -87,7 +87,11 @@
                 <h2 class="news-card-empty-title">No recent news found</h2>
                 <p>We haven’t found recent coverage for {{ card.company.name }}. Try opening the company for a wider range.</p>
               } @else {
-                <h2>{{ card.headline }}</h2>
+                <h2>
+                  <a class="news-headline-link" [href]="card.link" target="_blank" rel="noopener noreferrer">
+                    {{ card.headline }}
+                  </a>
+                </h2>
                 @if (card.snippet) {
                   <p>{{ card.snippet }}</p>
                 }

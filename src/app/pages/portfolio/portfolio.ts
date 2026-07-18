@@ -29,9 +29,23 @@ type NewsCard = {
   company: Company;
   headline: string;
   snippet: string;
+  /** Direct link to the article, so the story is readable from the card. */
+  link: string;
   publishedAt: string;
   accent: 'blue' | 'green' | 'amber' | 'violet';
   empty: boolean;
+  /** Sort keys mirroring the backend digest ranking (importance → score → recency). */
+  importanceRank: number;
+  score: number;
+  publishedMs: number;
+};
+
+/** Same scale the backend digest uses; unclassified items count as NEUTRO. */
+const IMPORTANCE_RANK: Record<string, number> = {
+  MUY_IMPORTANTE: 3,
+  IMPORTANTE: 2,
+  NEUTRO: 1,
+  POCO_RELEVANTE: 0,
 };
 
 @Component({
@@ -185,8 +199,11 @@ export class PortfolioComponent implements OnInit {
 
     forkJoin(
       companies.map((company) =>
-        this.newsDataService.getCompanyNews(company.symbol, company.name, { limit: 1 }).pipe(
-          map((response) => this.mapNewsCard(company, response.items[0])),
+        // Small recent window (3 days, like the tracker) instead of limit 1:
+        // "the newest item ever" is often a weak mention, while the pick below
+        // surfaces the most meaningful recent story per company.
+        this.newsDataService.getCompanyNews(company.symbol, company.name, { limit: 5, daysBack: 3 }).pipe(
+          map((response) => this.mapNewsCard(company, this.pickMostMeaningful(response.items))),
           catchError(() => of(this.mapNewsCard(company, null))),
         ),
       ),
@@ -196,9 +213,36 @@ export class PortfolioComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((cards) => {
-        this.newsCards = cards;
+        // Most meaningful story first (importance, then relevance, then
+        // recency — the same ranking the daily digest uses); companies with
+        // no recent news sink to the bottom.
+        this.newsCards = [...cards].sort(
+          (a, b) =>
+            b.importanceRank - a.importanceRank ||
+            b.score - a.score ||
+            b.publishedMs - a.publishedMs,
+        );
         this.changeDetectorRef.markForCheck();
       });
+  }
+
+  /** Best story by the digest's ranking: importance, then score, then recency. */
+  private pickMostMeaningful(items: NewsItem[]): NewsItem | undefined {
+    return [...items].sort(
+      (a, b) =>
+        this.importanceRankOf(b) - this.importanceRankOf(a) ||
+        b.score - a.score ||
+        this.publishedMsOf(b) - this.publishedMsOf(a),
+    )[0];
+  }
+
+  private importanceRankOf(item: NewsItem): number {
+    return item.importance ? (IMPORTANCE_RANK[item.importance] ?? 1) : 1;
+  }
+
+  private publishedMsOf(item: NewsItem): number {
+    const ms = Date.parse(item.isoDate ?? item.pubDate ?? '');
+    return Number.isFinite(ms) ? ms : 0;
   }
 
   private mapNewsCard(company: Company, newsItem: NewsItem | null | undefined): NewsCard {
@@ -207,9 +251,13 @@ export class PortfolioComponent implements OnInit {
         company,
         headline: '',
         snippet: '',
+        link: '',
         publishedAt: '',
         accent: 'blue',
         empty: true,
+        importanceRank: -1,
+        score: 0,
+        publishedMs: 0,
       };
     }
 
@@ -217,9 +265,13 @@ export class PortfolioComponent implements OnInit {
       company,
       headline: newsItem.title,
       snippet: newsItem.aiSummary?.trim() || newsItem.summary?.trim() || '',
+      link: newsItem.link,
       publishedAt: this.formatNewsDate(newsItem.isoDate ?? newsItem.pubDate),
       accent: this.getAccentFromNews(newsItem),
       empty: false,
+      importanceRank: this.importanceRankOf(newsItem),
+      score: newsItem.score,
+      publishedMs: this.publishedMsOf(newsItem),
     };
   }
 

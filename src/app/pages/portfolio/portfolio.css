@@ -443,3 +443,13 @@
 .logout-button:hover {
   color: var(--nt-text);
 }
+
+/* Headline links open the article directly; keep the card's visual style. */
+.news-headline-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.news-headline-link:hover {
+  text-decoration: underline;
+}
