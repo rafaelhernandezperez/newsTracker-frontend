@@ -67,6 +67,28 @@ export class PortfolioComponent implements OnInit {
   ngOnInit(): void {
     this.selectedCompanies = this.resolveCompanies();
     this.syncViewModels();
+    void this.healServerWatchlist();
+  }
+
+  /**
+   * Self-heal: if the server watchlist (what the alert schedulers read) is
+   * empty but this browser has a local selection, push it up. Covers
+   * selections saved while the backend was unreachable — without this, alerts
+   * would silently never fire for the user. Never touches a non-empty server
+   * list, so it can't clobber a watchlist managed from another device.
+   */
+  private async healServerWatchlist(): Promise<void> {
+    if (!this.auth.isAuthenticated || !this.selectedCompanies.length) {
+      return;
+    }
+    try {
+      const server = await this.watchlist.fetch();
+      if (server.length === 0) {
+        await this.watchlist.sync(this.selectedCompanies);
+      }
+    } catch {
+      // Best-effort: the next visit retries.
+    }
   }
 
   openModal(): void {
