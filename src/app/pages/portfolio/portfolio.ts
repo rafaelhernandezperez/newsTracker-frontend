@@ -58,10 +58,7 @@ export class PortfolioComponent implements OnInit {
   readonly isNewsLoading = signal(false);
 
   readonly availableCompanies: Company[] = COMPANIES;
-  readonly navItems: NavItem[] = [
-    { label: 'Dashboard', active: true },
-    { label: 'Sentiment Analysis' },
-  ];
+  readonly navItems: NavItem[] = [{ label: 'Dashboard', active: true }];
 
   selectedCompanies: Company[] = [];
   watchlistRows: WatchlistRow[] = [];
