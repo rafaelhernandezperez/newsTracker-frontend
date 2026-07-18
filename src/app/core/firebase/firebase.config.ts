@@ -19,7 +19,7 @@ export const firebaseConfig = {
 };
 
 /** VAPID key for FCM Web Push (Cloud Messaging → Web configuration). */
-export const firebaseVapidKey = 'REPLACE_WITH_VAPID_KEY';
+export const firebaseVapidKey = 'BAVuLc11NKokwyC1_U01uIy7O9GdNUcEQLUHj-0aH68ir7lToNva_6MUYAMyKTGJkNysuDaB3MzntSLdv-A6J-I';
 
 /** Initialize (or reuse) the singleton Firebase app. */
 export function getFirebaseApp(): FirebaseApp {

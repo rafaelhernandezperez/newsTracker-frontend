@@ -17,10 +17,25 @@ export class PushService {
   private foregroundBound = false;
 
   /**
-   * Enable push for the current (already authenticated) user. Safe to call more
-   * than once; returns true if a token was registered.
+   * Enable push for the current (already authenticated) user, prompting for
+   * notification permission if needed. Safe to call more than once; returns
+   * true if a token was registered.
    */
   async enable(): Promise<boolean> {
+    return this.register({ prompt: true });
+  }
+
+  /**
+   * Silently re-register the FCM token when permission was already granted.
+   * Called on app start for returning sessions: enable() only runs at
+   * login/onboarding, but FCM tokens rotate, so without this a token would
+   * eventually go stale and pushes would stop reaching the device.
+   */
+  async refreshIfGranted(): Promise<boolean> {
+    return this.register({ prompt: false });
+  }
+
+  private async register(options: { prompt: boolean }): Promise<boolean> {
     if (firebaseVapidKey.startsWith('REPLACE_')) {
       // FCM needs a Web Push certificate (VAPID key); skip until it is set.
       return false;
@@ -31,9 +46,13 @@ export class PushService {
         return false;
       }
 
-      const permission = await Notification.requestPermission();
+      const permission = options.prompt
+        ? await Notification.requestPermission()
+        : Notification.permission;
       if (permission !== 'granted') {
-        console.warn('[push] notification permission not granted:', permission);
+        if (options.prompt) {
+          console.warn('[push] notification permission not granted:', permission);
+        }
         return false;
       }
 
@@ -57,7 +76,7 @@ export class PushService {
       this.bindForegroundMessages();
       return true;
     } catch (error) {
-      console.error('[push] enable failed:', error);
+      console.error('[push] registration failed:', error);
       return false;
     }
   }
