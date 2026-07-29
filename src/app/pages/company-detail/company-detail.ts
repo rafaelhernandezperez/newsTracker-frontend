@@ -80,9 +80,10 @@ type RelatedNewsItem = {
   publishedAt?: string;
   dateKey?: string;
   tags: string[];
-  accent: 'amber' | 'green' | 'muted';
+  accent: 'positive' | 'negative' | 'neutral';
   importance?: NewsImportance;
   sentiment?: NewsSentiment;
+  language?: string;
 };
 
 type TimeframeOption = {
@@ -93,7 +94,8 @@ type TimeframeOption = {
 /** Combined market + news payload for one timeframe selection. */
 type TimeframeData = {
   market: { response: MarketResponse | null; error: string | null };
-  news: RelatedNewsItem[];
+  chartNews: RelatedNewsItem[];
+  relatedNews: RelatedNewsItem[];
 };
 
 @Component({
@@ -150,6 +152,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   hasChartData = false;
   isLoading = true;
   errorMessage = '';
+  /** Dated stories used exclusively for markers across the selected chart range. */
+  chartNewsItems: RelatedNewsItem[] = [];
+  /** Stories rendered in the Related News section below the chart. */
   relatedNewsItems: RelatedNewsItem[] = [];
   selectedNewsItem: RelatedNewsItem | null = null;
   /** When the current market snapshot was received (for the "Updated ..." label). */
@@ -194,6 +199,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.quote = null;
     this.chartData = [];
     this.history = [];
+    this.chartNewsItems = [];
     this.relatedNewsItems = [];
     this.selectedNewsItem = null;
     this.lastUpdatedAt = null;
@@ -379,7 +385,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       }),
     );
 
-    const news$ = this.newsDataService
+    const chartNews$ = this.newsDataService
       .getCompanyNews(symbol, this.company?.name, {
         // Scale with the window so longer timeframes get more dated markers
         // spread across the chart (the marker layer dedupes by day).
@@ -392,13 +398,31 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         catchError(() => of([] as RelatedNewsItem[])),
       );
 
-    return forkJoin({ market: market$, news: news$ });
+    // The compact 5D chart still needs dated marker coverage across its full
+    // range, but the list below it is intentionally a live "today" feed.
+    // Longer views use their full ranged response for both chart and list.
+    const relatedNews$ =
+      timeframe.label === '5D'
+        ? this.newsDataService
+            .getCompanyNews(symbol, this.company?.name, {
+              limit: 8,
+              from: this.localTodayDateKey(),
+              rssOnly: true,
+            })
+            .pipe(
+              map((response) => response.items.map((item) => this.mapRelatedNewsItem(item))),
+              catchError(() => of([] as RelatedNewsItem[])),
+            )
+        : chartNews$;
+
+    return forkJoin({ market: market$, chartNews: chartNews$, relatedNews: relatedNews$ });
   }
 
   /** Apply a timeframe's market + news payload and redraw the chart once. */
-  private applyTimeframeData({ market, news }: TimeframeData): void {
+  private applyTimeframeData({ market, chartNews, relatedNews }: TimeframeData): void {
     this.isLoading = false;
-    this.relatedNewsItems = news;
+    this.chartNewsItems = chartNews;
+    this.relatedNewsItems = relatedNews;
 
     if (market.response) {
       try {
@@ -533,13 +557,13 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   private buildNewsMarkers(data: { time: string; value: number }[]): SeriesMarker<Time>[] {
     this.markerLookup.clear();
 
-    if (data.length < 2 || !this.relatedNewsItems.length) {
+    if (data.length < 2 || !this.chartNewsItems.length) {
       return [];
     }
 
     // Snap each article to the nearest chart point by its real publish date.
     const chosen = new Map<string, { item: RelatedNewsItem; rank: number; value: number }>();
-    for (const item of this.relatedNewsItems) {
+    for (const item of this.chartNewsItems) {
       if (!item.dateKey) {
         continue;
       }
@@ -614,13 +638,13 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   private importanceSize(importance?: NewsImportance): number {
     switch (importance) {
       case 'MUY_IMPORTANTE':
-        return 3;
+        return 3.6;
       case 'IMPORTANTE':
-        return 2.2;
+        return 2.1;
       case 'POCO_RELEVANTE':
-        return 0.9;
+        return 0.7;
       default:
-        return 1.4;
+        return 1.25;
     }
   }
 
@@ -661,6 +685,15 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return 30;
     }
     return 40;
+  }
+
+  /** Current local calendar day in the API's yyyy-mm-dd query format. */
+  private localTodayDateKey(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private getTimeframeOption(label: TimeframeOption['label']): TimeframeOption {
@@ -727,12 +760,12 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return {
       id: item.id,
       source: item.source,
-      age: this.formatRelativeDate(publishedAt),
-      title: item.title,
+      age: this.formatRelativeDate(publishedAt, item.language),
+      title: item.localizedTitle?.trim() || item.title,
       summary:
         item.aiSummary?.trim() ||
         item.summary?.trim() ||
-        'No summary is available for this article yet.',
+        '',
       link: item.link,
       publishedAt,
       dateKey: this.toDateKey(publishedAt),
@@ -740,6 +773,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       accent: this.getNewsAccent(item),
       importance: item.importance,
       sentiment: item.sentiment,
+      language: item.language,
     };
   }
 
@@ -757,11 +791,11 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return 'neutral';
     }
 
-    if (item.accent === 'green') {
+    if (item.accent === 'positive') {
       return 'positive';
     }
 
-    if (item.accent === 'amber') {
+    if (item.accent === 'negative') {
       return 'negative';
     }
 
@@ -772,44 +806,67 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const tags = [
       item.language?.toUpperCase(),
       item.matchedTickers[0],
-      item.score > 0 ? `score ${item.score}` : '',
+      this.importanceLabel(item.importance, item.language),
     ].filter((value): value is string => Boolean(value));
 
     return tags.length ? tags.slice(0, 3) : ['headline'];
   }
 
-  private getNewsAccent(item: NewsItem): RelatedNewsItem['accent'] {
-    if (item.language === 'es') {
-      return 'amber';
-    }
+  private importanceLabel(importance?: NewsImportance, language?: string): string {
+    const spanish = this.isSpanish(language);
 
-    if (item.score >= 8) {
-      return 'green';
+    switch (importance) {
+      case 'MUY_IMPORTANTE':
+        return spanish ? 'Muy importante' : 'Very important';
+      case 'IMPORTANTE':
+        return spanish ? 'Importante' : 'Important';
+      case 'POCO_RELEVANTE':
+        return spanish ? 'Poco relevante' : 'Low relevance';
+      case 'NEUTRO':
+        return spanish ? 'Importancia neutral' : 'Neutral importance';
+      default:
+        return spanish ? 'Importancia pendiente' : 'Importance pending';
     }
-
-    return 'muted';
   }
 
-  private formatRelativeDate(value?: string): string {
+  isSpanish(language?: string): boolean {
+    return language?.trim().toLowerCase().startsWith('es') ?? false;
+  }
+
+  private getNewsAccent(item: NewsItem): RelatedNewsItem['accent'] {
+    if (item.sentiment === 'POSITIVO') {
+      return 'positive';
+    }
+
+    if (item.sentiment === 'NEGATIVO') {
+      return 'negative';
+    }
+
+    return 'neutral';
+  }
+
+  private formatRelativeDate(value?: string, language?: string): string {
+    const spanish = this.isSpanish(language);
+
     if (!value) {
-      return 'Latest';
+      return spanish ? 'Reciente' : 'Latest';
     }
 
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
-      return 'Latest';
+      return spanish ? 'Reciente' : 'Latest';
     }
 
     const diffMs = Date.now() - date.getTime();
     const diffHours = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
 
     if (diffHours < 24) {
-      return `${diffHours}h ago`;
+      return spanish ? `hace ${diffHours} h` : `${diffHours}h ago`;
     }
 
     const diffDays = Math.round(diffHours / 24);
-    return `${diffDays}d ago`;
+    return spanish ? `hace ${diffDays} d` : `${diffDays}d ago`;
   }
 
   private toDateKey(value?: string): string | undefined {

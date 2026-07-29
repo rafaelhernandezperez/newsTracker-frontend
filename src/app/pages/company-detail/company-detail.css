@@ -469,15 +469,15 @@
   width: 0.42rem;
   height: 0.42rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.35);
+  background: #9ca3af;
 }
 
-.news-bullet-amber {
-  background: #f2a93b;
+.news-bullet-positive {
+  background: #21c996;
 }
 
-.news-bullet-green {
-  background: #36d59b;
+.news-bullet-negative {
+  background: #f1675c;
 }
 
 .related-news-item h2 {

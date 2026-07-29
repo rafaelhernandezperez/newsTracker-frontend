@@ -263,7 +263,7 @@ export class PortfolioComponent implements OnInit {
 
     return {
       company,
-      headline: newsItem.title,
+      headline: newsItem.localizedTitle?.trim() || newsItem.title,
       snippet: newsItem.aiSummary?.trim() || newsItem.summary?.trim() || '',
       link: newsItem.link,
       publishedAt: this.formatNewsDate(newsItem.isoDate ?? newsItem.pubDate),

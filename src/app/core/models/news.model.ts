@@ -4,6 +4,7 @@ export type NewsSentiment = 'POSITIVO' | 'NEGATIVO' | 'NEUTRO';
 export interface NewsItem {
   id: string;
   title: string;
+  localizedTitle?: string;
   link: string;
   source: string;
   summary?: string;
@@ -12,7 +13,7 @@ export interface NewsItem {
   language?: string;
   matchedTickers: string[];
   score: number;
-  /** One-sentence AI summary (Spanish); preferred over the raw RSS snippet. */
+  /** AI summary in the language selected for the interface. */
   aiSummary?: string;
   /** AI-classified market impact. Drives the chart marker size. */
   importance?: NewsImportance;

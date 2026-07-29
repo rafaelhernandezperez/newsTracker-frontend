@@ -142,14 +142,18 @@
 
           <section class="related-news">
             <div class="section-heading">
-              <p>Related news</p>
+              <p>{{ activeTimeframe === '5D' ? "Today's related news" : 'Related news' }}</p>
             </div>
 
             <div class="related-news-list">
               @for (item of relatedNewsItems; track item.id) {
                 <article class="related-news-item">
                   <div class="related-news-meta">
-                    <span class="news-bullet" [class.news-bullet-amber]="item.accent === 'amber'" [class.news-bullet-green]="item.accent === 'green'"></span>
+                    <span
+                      class="news-bullet"
+                      [class.news-bullet-positive]="item.accent === 'positive'"
+                      [class.news-bullet-negative]="item.accent === 'negative'"
+                    ></span>
                     <p>{{ item.source }} · {{ item.age }}</p>
                   </div>
                   <h2>{{ item.title }}</h2>
@@ -165,12 +169,14 @@
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Read full article
+                      {{ isSpanish(item.language) ? 'Leer artículo completo' : 'Read full article' }}
                     </a>
                   }
                 </article>
               } @empty {
-                <p class="related-news-empty">No articles found for this range.</p>
+                <p class="related-news-empty">
+                  {{ activeTimeframe === '5D' ? 'No RSS articles found today.' : 'No articles found for this range.' }}
+                </p>
               }
             </div>
           </section>
@@ -198,7 +204,9 @@
             <p class="news-modal-meta">{{ selectedNewsItem.source }} · {{ selectedNewsItem.age }}</p>
             <h2 id="news-modal-title">{{ selectedNewsItem.title }}</h2>
           </div>
-          <button type="button" class="news-modal-close" (click)="closeNewsModal()">Close</button>
+          <button type="button" class="news-modal-close" (click)="closeNewsModal()">
+            {{ isSpanish(selectedNewsItem.language) ? 'Cerrar' : 'Close' }}
+          </button>
         </div>
 
         <p class="news-modal-summary">{{ selectedNewsItem.summary }}</p>
@@ -216,7 +224,7 @@
             target="_blank"
             rel="noopener noreferrer"
           >
-            Read full article
+            {{ isSpanish(selectedNewsItem.language) ? 'Leer artículo completo' : 'Read full article' }}
           </a>
         }
       </section>
