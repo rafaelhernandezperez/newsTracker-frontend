@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { catchError, map, Observable, shareReplay, throwError } from 'rxjs';
 import { NewsImportance, NewsItem, NewsResponse, NewsSentiment } from '../models/news.model';
+import { LanguageService } from './language.service';
 
 /** How long an identical request is served from memory instead of refetched. */
 const CACHE_TTL_MS = 60_000;
@@ -20,6 +21,7 @@ export interface CompanyNewsQuery {
   from?: string;
   to?: string;
   daysBack?: number;
+  rssOnly?: boolean;
 }
 
 @Injectable({
@@ -27,6 +29,7 @@ export interface CompanyNewsQuery {
 })
 export class NewsDataService {
   private readonly http = inject(HttpClient);
+  private readonly languageService = inject(LanguageService);
   private readonly baseUrl = '/api/news';
   /** Small in-memory TTL cache so repeat navigation doesn't refetch identical data. */
   private readonly cache = new Map<string, { expiresAt: number; response$: Observable<NewsResponse> }>();
@@ -38,6 +41,7 @@ export class NewsDataService {
   ): Observable<NewsResponse> {
     const params: Record<string, string | number> = {
       limit: query.limit ?? 6,
+      lang: this.languageService.language(),
     };
 
     if (companyName) {
@@ -58,6 +62,10 @@ export class NewsDataService {
 
     if (typeof query.daysBack === 'number' && Number.isFinite(query.daysBack)) {
       params['daysBack'] = query.daysBack;
+    }
+
+    if (query.rssOnly) {
+      params['rssOnly'] = 'true';
     }
 
     const key = `${ticker.toUpperCase()}:${JSON.stringify(params)}`;
@@ -113,6 +121,8 @@ export class NewsDataService {
     return {
       id: typeof entry['id'] === 'string' ? entry['id'] : `${source}-${title}`,
       title,
+      localizedTitle:
+        typeof entry['localizedTitle'] === 'string' ? entry['localizedTitle'].trim() : undefined,
       link,
       source,
       summary: typeof entry['summary'] === 'string' ? entry['summary'].trim() : '',
