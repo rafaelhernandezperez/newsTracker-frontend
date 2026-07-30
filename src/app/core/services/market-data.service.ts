@@ -31,7 +31,8 @@ export class MarketDataService {
     }
 
     const response$ = this.http
-      .get<RawMarketResponse>(`${this.baseUrl}/${ticker}`, { params: { days } })
+      // Encoded: quotable symbols aren't all plain letters (BRK-B, EURUSD=X).
+      .get<RawMarketResponse>(`${this.baseUrl}/${encodeURIComponent(ticker)}`, { params: { days } })
       .pipe(
         map((response) => this.normalizeResponse(response, ticker)),
         catchError((error) => {

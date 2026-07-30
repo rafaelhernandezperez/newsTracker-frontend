@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { StoredCompany } from './user-preferences.service';
+import { AuthService } from './auth.service';
+import { StoredCompany, UserPreferencesService } from './user-preferences.service';
 
 type WatchlistResponse = {
   ok: boolean;
@@ -17,7 +18,24 @@ type WatchlistResponse = {
 @Injectable({ providedIn: 'root' })
 export class WatchlistService {
   private readonly http = inject(HttpClient);
+  private readonly preferences = inject(UserPreferencesService);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = '/api/watchlist';
+
+  /**
+   * Persist a new selection — the single entry point for "the user changed their
+   * watchlist", used by every screen that can edit it. Local prefs are written
+   * first so the UI is right even offline; the server copy follows for signed-in
+   * users, which is what makes the scheduled alerts track the change. Skipping
+   * that mirror is how alerts silently stop matching the watchlist.
+   */
+  async save(companies: StoredCompany[]): Promise<void> {
+    this.preferences.setCompanies(companies);
+
+    if (this.auth.isAuthenticated) {
+      await this.sync(companies);
+    }
+  }
 
   /** Pull the server watchlist (used to hydrate local prefs after login). */
   async fetch(): Promise<StoredCompany[]> {

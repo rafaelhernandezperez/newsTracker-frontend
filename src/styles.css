@@ -55,3 +55,54 @@ body {
 ::selection {
   background: var(--nt-accent-soft);
 }
+
+/* ------------------------------------------------------------------ */
+/* Segmented control — the pill used for the language and currency     */
+/* switchers. Global (not component-scoped) so both stay identical:    */
+/* same radius, same muted/active treatment as .topnav-link.           */
+/* ------------------------------------------------------------------ */
+.nt-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  border: 1px solid var(--nt-border);
+  border-radius: 999px;
+  background: var(--nt-surface);
+  padding: 0.2rem 0.25rem;
+}
+
+/* Leading glyph (e.g. the globe); adds the breathing room on the left. */
+.nt-segmented-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0 0.2rem 0 0.35rem;
+  color: var(--nt-text-faint);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.nt-segmented-option {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.42rem 0.6rem;
+  color: var(--nt-text-faint);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.nt-segmented-option:hover {
+  background: var(--nt-surface-hover);
+  color: var(--nt-text-strong);
+}
+
+.nt-segmented-option-active {
+  background: var(--nt-accent-soft);
+  color: var(--nt-text-strong);
+}

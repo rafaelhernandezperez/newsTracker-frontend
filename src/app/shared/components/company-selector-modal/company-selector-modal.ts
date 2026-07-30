@@ -12,9 +12,9 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, tap } from 'rxjs';
-import { Company } from '../../../../core/models/company.model';
-import { LanguageService } from '../../../../core/services/language.service';
-import { TickerSearchService } from '../../../../core/services/ticker-search.service';
+import { Company } from '../../../core/models/company.model';
+import { LanguageService } from '../../../core/services/language.service';
+import { TickerSearchService } from '../../../core/services/ticker-search.service';
 
 @Component({
   selector: 'app-company-selector-modal',

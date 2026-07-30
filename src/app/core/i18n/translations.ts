@@ -171,6 +171,12 @@ const EN = {
   'alerts.highImpact': 'High-impact news',
   'alerts.dailyDigest': 'Daily digest (9am)',
 
+  // Currency switcher
+  'currency.label': 'Currency',
+  'currency.usd': 'US dollar',
+  'currency.eur': 'Euro',
+  'currency.nativeFallback': 'Shown in the listing currency — no exchange rate available.',
+
   // Company metadata
   'company.listedOn': 'Listed on {exchange}.',
   'sector.fallback': 'Markets',
@@ -333,6 +339,13 @@ const ES: Record<TranslationKey, string> = {
   'alerts.priceMoves': 'Movimientos fuertes de precio (>3 %)',
   'alerts.highImpact': 'Noticias de alto impacto',
   'alerts.dailyDigest': 'Resumen diario (9:00)',
+
+  // Currency switcher
+  'currency.label': 'Moneda',
+  'currency.usd': 'Dólar estadounidense',
+  'currency.eur': 'Euro',
+  'currency.nativeFallback':
+    'Mostrado en la moneda de cotización: no hay tipo de cambio disponible.',
 
   // Company metadata
   'company.listedOn': 'Cotiza en {exchange}.',

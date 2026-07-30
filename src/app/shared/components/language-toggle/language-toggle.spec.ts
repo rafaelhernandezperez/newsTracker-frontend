@@ -30,7 +30,7 @@ describe('LanguageToggleComponent', () => {
   function buttonFor(code: string): HTMLButtonElement {
     const buttons = [
       ...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
-        '.lang-switch-option',
+        '.nt-segmented-option',
       ),
     ];
     const button = buttons.find((candidate) => candidate.textContent?.trim() === code);

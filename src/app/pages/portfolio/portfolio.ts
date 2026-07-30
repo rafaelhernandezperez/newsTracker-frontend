@@ -15,8 +15,8 @@ import { NewsDataService } from '../../core/services/news-data.service';
 import { UserPreferencesService } from '../../core/services/user-preferences.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
+import { CompanySelectorModalComponent } from '../../shared/components/company-selector-modal/company-selector-modal';
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
-import { CompanySelectorModalComponent } from './components/company-selector-modal/company-selector-modal';
 
 type NavItem = {
   labelKey: TranslationKey;
@@ -139,15 +139,9 @@ export class PortfolioComponent implements OnInit {
 
   addCompanies(companies: Company[]): void {
     this.selectedCompanies = [...companies];
-    this.preferences.setCompanies(companies);
+    void this.watchlist.save(companies);
     this.syncViewModels();
     this.closeModal();
-
-    // Keep the server watchlist (used by the daily digest) in sync for signed-in
-    // users. No-op when logged out — the interceptor simply sends no token.
-    if (this.auth.isAuthenticated) {
-      void this.watchlist.sync(companies);
-    }
   }
 
   async logout(): Promise<void> {

@@ -48,12 +48,16 @@ import {
   MarketQuote,
   MarketResponse,
 } from '../../core/models/market.model';
+import { CurrencyService } from '../../core/services/currency.service';
 import { LanguageService } from '../../core/services/language.service';
 import { MarketDataService } from '../../core/services/market-data.service';
 import { NewsImportance, NewsItem, NewsSentiment } from '../../core/models/news.model';
 import { NewsDataService } from '../../core/services/news-data.service';
 import { UserPreferencesService } from '../../core/services/user-preferences.service';
 import { AuthService } from '../../core/services/auth.service';
+import { WatchlistService } from '../../core/services/watchlist.service';
+import { CompanySelectorModalComponent } from '../../shared/components/company-selector-modal/company-selector-modal';
+import { CurrencyToggleComponent } from '../../shared/components/currency-toggle/currency-toggle';
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 
 type NavItem = {
@@ -107,7 +111,13 @@ type TimeframeData = {
 @Component({
   selector: 'app-company-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, LanguageToggleComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    CompanySelectorModalComponent,
+    CurrencyToggleComponent,
+    LanguageToggleComponent,
+  ],
   templateUrl: './company-detail.html',
   styleUrl: './company-detail.css',
 })
@@ -122,6 +132,8 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
   readonly i18n = inject(LanguageService);
+  readonly currencyService = inject(CurrencyService);
+  private readonly watchlist = inject(WatchlistService);
   /** Language the news on screen was fetched in; drives the refetch below. */
   private loadedLanguage = this.i18n.language();
   /** Current ticker; follows the route param so in-page navigation reloads data. */
@@ -144,6 +156,11 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   ];
   activeTimeframe: TimeframeOption['label'] = '1M';
   isWatchlistOpen = false;
+  /** The watchlist editor, opened from "Manage" without leaving this page. */
+  isManageOpen = false;
+  readonly availableCompanies: Company[] = COMPANIES;
+  /** Selection handed to the editor; snapshotted when it opens. */
+  managedCompanies: Company[] = [];
   get navItems(): NavItem[] {
     const detailRoute = this.symbol ? `/portfolio/${this.symbol}` : '/portfolio';
 
@@ -192,6 +209,16 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       if (this.symbol) {
         this.timeframe$.next(this.getTimeframeOption(this.activeTimeframe));
       }
+    });
+
+    // The series is plotted in the display currency, so a currency switch (or
+    // the FX rate arriving) has to redraw it. Prices in the header and stat
+    // cards are getters, which Angular re-evaluates on its own.
+    effect(() => {
+      this.currencyService.currency();
+      this.currencyService.hasRate();
+      this.buildChart();
+      this.changeDetectorRef.markForCheck();
     });
   }
 
@@ -286,6 +313,32 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   toggleWatchlist(): void {
     this.isWatchlistOpen = !this.isWatchlistOpen;
+  }
+
+  openManage(): void {
+    this.managedCompanies = this.followedCompanies();
+    this.isManageOpen = true;
+  }
+
+  closeManage(): void {
+    this.isManageOpen = false;
+  }
+
+  /** Companies currently followed, enriched from the catalogue when curated. */
+  private followedCompanies(): Company[] {
+    return this.preferences
+      .companies()
+      .map(
+        (stored) =>
+          this.availableCompanies.find((company) => company.symbol === stored.symbol) ?? stored,
+      );
+  }
+
+  /** Save the edited selection and refresh the sidebar in place. */
+  saveManagedCompanies(companies: Company[]): void {
+    void this.watchlist.save(companies);
+    this.closeManage();
+    this.loadWatchlist();
   }
 
   openNewsModal(item: RelatedNewsItem): void {
@@ -552,16 +605,20 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return;
     }
 
+    // Convert here so the price axis reads in the same currency as the header
+    // and the stat cards.
+    const currency = this.quotedCurrency;
     const seriesData = [...this.chartData]
       .filter((point) => Boolean(point.date))
       .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
       .reduce<{ time: string; value: number }[]>((acc, point) => {
+        const value = this.currencyService.convert(point.value, currency).amount;
         const last = acc[acc.length - 1];
         // Collapse any duplicate dates (Lightweight Charts requires unique, ascending times).
         if (last && last.time === point.date) {
-          last.value = point.value;
+          last.value = value;
         } else {
-          acc.push({ time: point.date, value: point.value });
+          acc.push({ time: point.date, value });
         }
         return acc;
       }, []);
@@ -875,6 +932,28 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return date.toISOString().slice(0, 10);
   }
 
+  /** Currency the backend quoted this company in. */
+  private get quotedCurrency(): string {
+    return this.quote?.currency ?? (this.company?.sector === 'Banca' ? 'EUR' : 'USD');
+  }
+
+  /**
+   * True when prices are shown in their listing currency instead of the selected
+   * one — no FX rate available, or a listing currency with no rate here (GBP,
+   * JPY, ...). Suppressed while the rate is still loading, so a normal page load
+   * doesn't flash a warning that resolves a moment later.
+   */
+  get showsQuotedCurrencyNote(): boolean {
+    if (this.currencyService.isRateLoading()) {
+      return false;
+    }
+
+    return (
+      this.currencyService.convert(1, this.quotedCurrency).currency !==
+      this.currencyService.currency()
+    );
+  }
+
   private formatCurrency(value: number | null | undefined, fallbackValue?: number | null): string {
     const amount = typeof value === 'number' ? value : fallbackValue;
 
@@ -882,14 +961,14 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return '--';
     }
 
-    const currency = this.quote?.currency ?? (this.company?.sector === 'Banca' ? 'EUR' : 'USD');
+    const converted = this.currencyService.convert(amount, this.quotedCurrency);
 
     return new Intl.NumberFormat(this.i18n.locale(), {
       style: 'currency',
-      currency,
+      currency: converted.currency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(converted.amount);
   }
 
   private formatCompactCurrency(value: number | null | undefined): string {
@@ -897,14 +976,14 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return '--';
     }
 
-    const currency = this.quote?.currency ?? (this.company?.sector === 'Banca' ? 'EUR' : 'USD');
+    const converted = this.currencyService.convert(value, this.quotedCurrency);
 
     return new Intl.NumberFormat(this.i18n.locale(), {
       style: 'currency',
-      currency,
+      currency: converted.currency,
       notation: 'compact',
       maximumFractionDigits: 2,
-    }).format(value);
+    }).format(converted.amount);
   }
 
   private formatCompactNumber(value: number | null | undefined): string {

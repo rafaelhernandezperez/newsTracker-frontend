@@ -36,7 +36,9 @@
           <section class="sidebar-section">
             <div class="section-heading">
               <p>{{ i18n.t('watchlist.title') }}</p>
-              <a routerLink="/portfolio" class="section-action">{{ i18n.t('watchlist.manage') }}</a>
+              <button type="button" class="section-action" (click)="openManage()">
+                {{ i18n.t('watchlist.manage') }}
+              </button>
             </div>
 
             <div class="watchlist">
@@ -59,6 +61,8 @@
                     {{ row.change }}
                   </span>
                 </a>
+              } @empty {
+                <p class="watchlist-empty">{{ i18n.t('watchlist.empty') }}</p>
               }
             </div>
           </section>
@@ -96,17 +100,26 @@
                 }
               </p>
 
-              <div class="range-tabs">
-                @for (tab of timeframeOptions; track tab.label) {
-                  <button
-                    type="button"
-                    class="range-tab"
-                    [class.range-tab-active]="tab.label === activeTimeframe"
-                    (click)="selectTimeframe(tab)"
-                  >
-                    {{ tab.label }}
-                  </button>
-                }
+              <div class="chart-controls">
+                <div class="range-tabs">
+                  @for (tab of timeframeOptions; track tab.label) {
+                    <button
+                      type="button"
+                      class="range-tab"
+                      [class.range-tab-active]="tab.label === activeTimeframe"
+                      (click)="selectTimeframe(tab)"
+                    >
+                      {{ tab.label }}
+                    </button>
+                  }
+                </div>
+
+                <div class="currency-control">
+                  @if (showsQuotedCurrencyNote) {
+                    <span class="currency-note">{{ i18n.t('currency.nativeFallback') }}</span>
+                  }
+                  <app-currency-toggle />
+                </div>
               </div>
             </div>
           </div>
@@ -203,6 +216,15 @@
       </section>
     }
   </div>
+
+  @if (isManageOpen) {
+    <app-company-selector-modal
+      [companies]="availableCompanies"
+      [selectedCompanies]="managedCompanies"
+      (close)="closeManage()"
+      (saveSelection)="saveManagedCompanies($event)"
+    />
+  }
 
   @if (selectedNewsItem) {
     <div class="news-modal-backdrop" (click)="closeNewsModal()">
