@@ -11,6 +11,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  effect,
   inject,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -38,6 +39,8 @@ import {
   type Time,
 } from 'lightweight-charts';
 import { COMPANIES } from '../../core/data/companies.data';
+import { newsHeadline, newsSummary } from '../../core/i18n/news-text';
+import { TranslationKey } from '../../core/i18n/translations';
 import { Company } from '../../core/models/company.model';
 import {
   MarketChartPoint,
@@ -45,14 +48,16 @@ import {
   MarketQuote,
   MarketResponse,
 } from '../../core/models/market.model';
+import { LanguageService } from '../../core/services/language.service';
 import { MarketDataService } from '../../core/services/market-data.service';
 import { NewsImportance, NewsItem, NewsSentiment } from '../../core/models/news.model';
 import { NewsDataService } from '../../core/services/news-data.service';
 import { UserPreferencesService } from '../../core/services/user-preferences.service';
 import { AuthService } from '../../core/services/auth.service';
+import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 
 type NavItem = {
-  label: string;
+  labelKey: TranslationKey;
   link: string | any[];
   active?: boolean;
 };
@@ -66,7 +71,7 @@ type WatchlistRow = {
 };
 
 type StatCard = {
-  label: string;
+  labelKey: TranslationKey;
   value: string;
 };
 
@@ -83,6 +88,7 @@ type RelatedNewsItem = {
   accent: 'positive' | 'negative' | 'neutral';
   importance?: NewsImportance;
   sentiment?: NewsSentiment;
+  /** Language of the ORIGINAL article — shown as a tag, never used to pick copy. */
   language?: string;
 };
 
@@ -101,7 +107,7 @@ type TimeframeData = {
 @Component({
   selector: 'app-company-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LanguageToggleComponent],
   templateUrl: './company-detail.html',
   styleUrl: './company-detail.css',
 })
@@ -115,6 +121,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
+  readonly i18n = inject(LanguageService);
+  /** Language the news on screen was fetched in; drives the refetch below. */
+  private loadedLanguage = this.i18n.language();
   /** Current ticker; follows the route param so in-page navigation reloads data. */
   private symbol = this.route.snapshot.paramMap.get('symbol');
   /** Timeframe selections; switchMap cancels the in-flight requests on a new pick. */
@@ -139,8 +148,8 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const detailRoute = this.symbol ? `/portfolio/${this.symbol}` : '/portfolio';
 
     return [
-      { label: 'Dashboard', link: '/portfolio' },
-      { label: 'Stock detail', link: detailRoute, active: true },
+      { labelKey: 'nav.dashboard', link: '/portfolio' },
+      { labelKey: 'nav.stockDetail', link: detailRoute, active: true },
     ];
   }
 
@@ -161,6 +170,30 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   lastUpdatedAt: Date | null = null;
 
   watchlistRows: WatchlistRow[] = [];
+
+  constructor() {
+    // AI headlines and summaries are generated server-side in the requested
+    // language, so switching language has to re-run the news requests for the
+    // current timeframe. Initialized to the current language, so the first run
+    // here never duplicates the initial load.
+    effect(() => {
+      const language = this.i18n.language();
+
+      if (language === this.loadedLanguage) {
+        return;
+      }
+
+      this.loadedLanguage = language;
+      // The open article popup holds a copy of the previous language's text and
+      // its item is about to be replaced, so dismiss it rather than leave stale
+      // copy on screen.
+      this.selectedNewsItem = null;
+
+      if (this.symbol) {
+        this.timeframe$.next(this.getTimeframeOption(this.activeTimeframe));
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.loadWatchlist();
@@ -190,7 +223,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     if (!symbol) {
       this.isLoading = false;
-      this.errorMessage = 'No ticker was provided.';
+      this.errorMessage = this.i18n.t('market.noTicker');
       this.changeDetectorRef.markForCheck();
       return;
     }
@@ -293,14 +326,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   get lastUpdatedLabel(): string {
-    if (!this.lastUpdatedAt) {
-      return '';
-    }
-
-    return new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(this.lastUpdatedAt);
+    return this.i18n.formatTime(this.lastUpdatedAt);
   }
 
   get statCards(): StatCard[] {
@@ -309,48 +335,48 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     return [
       {
-        label: 'Open',
+        labelKey: 'stat.open',
         value: this.formatCurrency(this.quote?.open ?? latestPoint?.open ?? null, fallbackValue),
       },
       {
-        label: 'Day high',
+        labelKey: 'stat.dayHigh',
         value: this.formatCurrency(
           this.quote?.dayHigh ?? this.getHistoryExtreme('high', 'max'),
           fallbackValue,
         ),
       },
       {
-        label: 'Day low',
+        labelKey: 'stat.dayLow',
         value: this.formatCurrency(
           this.quote?.dayLow ?? this.getHistoryExtreme('low', 'min'),
           fallbackValue,
         ),
       },
       {
-        label: 'Volume',
+        labelKey: 'stat.volume',
         value: this.formatCompactNumber(this.quote?.volume ?? latestPoint?.volume ?? null),
       },
       {
-        label: '52w high',
+        labelKey: 'stat.week52High',
         value: this.formatCurrency(
           this.quote?.fiftyTwoWeekHigh ?? this.getHistoryExtreme('high', 'max'),
           fallbackValue,
         ),
       },
       {
-        label: '52w low',
+        labelKey: 'stat.week52Low',
         value: this.formatCurrency(
           this.quote?.fiftyTwoWeekLow ?? this.getHistoryExtreme('low', 'min'),
           fallbackValue,
         ),
       },
       {
-        label: 'P/E ratio',
+        labelKey: 'stat.peRatio',
         value:
           typeof this.quote?.trailingPE === 'number' ? `${this.quote.trailingPE.toFixed(2)}x` : '--',
       },
       {
-        label: 'Mkt cap',
+        labelKey: 'stat.marketCap',
         value: this.formatCompactCurrency(this.quote?.marketCap ?? null),
       },
     ];
@@ -433,10 +459,10 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         this.lastUpdatedAt = new Date();
       } catch (error) {
         console.error('[company-detail] Error processing market response:', error);
-        this.errorMessage = 'The backend responded, but the payload could not be processed.';
+        this.errorMessage = this.i18n.t('market.payloadError');
       }
     } else {
-      this.errorMessage = market.error ?? 'Market data could not be loaded.';
+      this.errorMessage = market.error ?? this.i18n.t('market.failed');
     }
 
     this.buildChart();
@@ -734,24 +760,23 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return {
       symbol: symbol.toUpperCase(),
       name: symbol.toUpperCase(),
-      summary: 'The latest story associated with this company will appear here.',
     };
   }
 
   private getMarketErrorMessage(error: unknown): string {
     if (!(error instanceof HttpErrorResponse)) {
-      return 'The market request timed out or returned an invalid response.';
+      return this.i18n.t('market.timeout');
     }
 
     if (error.status === 0) {
-      return 'The frontend could not reach the backend. Check that the server is running and the proxy is configured.';
+      return this.i18n.t('market.unreachable');
     }
 
     if (typeof error.error?.message === 'string' && error.error.message.trim()) {
       return error.error.message;
     }
 
-    return `Market data could not be loaded (${error.status}).`;
+    return this.i18n.t('market.failedWithStatus', { status: error.status });
   }
 
   private mapRelatedNewsItem(item: NewsItem): RelatedNewsItem {
@@ -760,12 +785,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return {
       id: item.id,
       source: item.source,
-      age: this.formatRelativeDate(publishedAt, item.language),
-      title: item.localizedTitle?.trim() || item.title,
-      summary:
-        item.aiSummary?.trim() ||
-        item.summary?.trim() ||
-        '',
+      age: this.i18n.formatRelativeAge(publishedAt),
+      title: newsHeadline(item),
+      summary: newsSummary(item, this.i18n.language()),
       link: item.link,
       publishedAt,
       dateKey: this.toDateKey(publishedAt),
@@ -806,31 +828,25 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const tags = [
       item.language?.toUpperCase(),
       item.matchedTickers[0],
-      this.importanceLabel(item.importance, item.language),
+      this.importanceLabel(item.importance),
     ].filter((value): value is string => Boolean(value));
 
-    return tags.length ? tags.slice(0, 3) : ['headline'];
+    return tags.length ? tags.slice(0, 3) : [this.i18n.t('news.tagHeadline')];
   }
 
-  private importanceLabel(importance?: NewsImportance, language?: string): string {
-    const spanish = this.isSpanish(language);
-
+  private importanceLabel(importance?: NewsImportance): string {
     switch (importance) {
       case 'MUY_IMPORTANTE':
-        return spanish ? 'Muy importante' : 'Very important';
+        return this.i18n.t('importance.veryImportant');
       case 'IMPORTANTE':
-        return spanish ? 'Importante' : 'Important';
+        return this.i18n.t('importance.important');
       case 'POCO_RELEVANTE':
-        return spanish ? 'Poco relevante' : 'Low relevance';
+        return this.i18n.t('importance.lowRelevance');
       case 'NEUTRO':
-        return spanish ? 'Importancia neutral' : 'Neutral importance';
+        return this.i18n.t('importance.neutral');
       default:
-        return spanish ? 'Importancia pendiente' : 'Importance pending';
+        return this.i18n.t('importance.pending');
     }
-  }
-
-  isSpanish(language?: string): boolean {
-    return language?.trim().toLowerCase().startsWith('es') ?? false;
   }
 
   private getNewsAccent(item: NewsItem): RelatedNewsItem['accent'] {
@@ -843,30 +859,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     }
 
     return 'neutral';
-  }
-
-  private formatRelativeDate(value?: string, language?: string): string {
-    const spanish = this.isSpanish(language);
-
-    if (!value) {
-      return spanish ? 'Reciente' : 'Latest';
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return spanish ? 'Reciente' : 'Latest';
-    }
-
-    const diffMs = Date.now() - date.getTime();
-    const diffHours = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
-
-    if (diffHours < 24) {
-      return spanish ? `hace ${diffHours} h` : `${diffHours}h ago`;
-    }
-
-    const diffDays = Math.round(diffHours / 24);
-    return spanish ? `hace ${diffDays} d` : `${diffDays}d ago`;
   }
 
   private toDateKey(value?: string): string | undefined {
@@ -892,7 +884,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     const currency = this.quote?.currency ?? (this.company?.sector === 'Banca' ? 'EUR' : 'USD');
 
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(this.i18n.locale(), {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
@@ -907,7 +899,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     const currency = this.quote?.currency ?? (this.company?.sector === 'Banca' ? 'EUR' : 'USD');
 
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(this.i18n.locale(), {
       style: 'currency',
       currency,
       notation: 'compact',
@@ -920,7 +912,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return '--';
     }
 
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(this.i18n.locale(), {
       notation: 'compact',
       maximumFractionDigits: 2,
     }).format(value);

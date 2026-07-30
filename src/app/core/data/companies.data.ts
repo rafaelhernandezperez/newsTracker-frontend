@@ -1,46 +1,39 @@
 import { Company } from '../models/company.model';
 
+/**
+ * Curated catalogue. The editorial blurb for each symbol lives in
+ * `core/i18n/translations.ts` (one per language) so the list itself stays
+ * language-neutral — `LanguageService.companyBlurb()` resolves it for display.
+ */
 export const COMPANIES: Company[] = [
   {
     symbol: 'BBVA',
     name: 'Banco Bilbao Vizcaya Argentaria',
     sector: 'Banca',
-    summary:
-      'BBVA refuerza su estrategia digital mientras el mercado sigue de cerca el impacto de los tipos de interes en su negocio bancario.',
   },
   {
     symbol: 'NVDA',
     name: 'NVIDIA Corporation',
     sector: 'Tecnologia',
-    summary:
-      'NVIDIA mantiene el foco en inteligencia artificial y chips de alto rendimiento, con nuevas expectativas de crecimiento para los proximos trimestres.',
   },
   {
     symbol: 'AAPL',
     name: 'Apple Inc.',
     sector: 'Tecnologia',
-    summary:
-      'Apple prepara una nueva etapa de producto y servicios, mientras los analistas valoran la evolucion de su ecosistema y ventas internacionales.',
   },
   {
     symbol: 'MSFT',
     name: 'Microsoft Corporation',
     sector: 'Tecnologia',
-    summary:
-      'Microsoft amplia su apuesta por la nube y la IA generativa con un fuerte peso de Azure en las previsiones del mercado.',
   },
   {
     symbol: 'TSLA',
     name: 'Tesla, Inc.',
     sector: 'Automocion',
-    summary:
-      'Tesla centra la atencion en produccion, autonomia y competencia global en un momento clave para el vehiculo electrico.',
   },
   {
     symbol: 'SAN',
     name: 'Banco Santander',
     sector: 'Banca',
-    summary:
-      'Santander busca consolidar resultados con una mayor eficiencia operativa y una cartera diversificada en distintos mercados.',
   },
 ];

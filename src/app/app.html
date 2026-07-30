@@ -1,19 +1,1 @@
-<div class="language-selector" role="group" aria-label="Language">
-  <button
-    type="button"
-    [class.active]="languageService.language() === 'en'"
-    [attr.aria-pressed]="languageService.language() === 'en'"
-    (click)="setLanguage('en')"
-  >
-    EN
-  </button>
-  <button
-    type="button"
-    [class.active]="languageService.language() === 'es'"
-    [attr.aria-pressed]="languageService.language() === 'es'"
-    (click)="setLanguage('es')"
-  >
-    ES
-  </button>
-</div>
 <router-outlet></router-outlet>

@@ -8,27 +8,27 @@
   >
     <div class="modal-header">
       <div>
-        <p class="eyebrow">Watchlist</p>
-        <h2 id="company-selector-title">Manage your companies</h2>
-        <p class="intro">Choose which companies stay in your news tracker. Your sidebar and dashboard will update from this selection.</p>
+        <p class="eyebrow">{{ i18n.t('watchlist.title') }}</p>
+        <h2 id="company-selector-title">{{ i18n.t('modal.title') }}</h2>
+        <p class="intro">{{ i18n.t('modal.intro') }}</p>
       </div>
 
-      <button class="close-btn" (click)="close.emit()" aria-label="Close modal">×</button>
+      <button class="close-btn" (click)="close.emit()" [attr.aria-label]="i18n.t('modal.closeAria')">×</button>
     </div>
 
     <input
       type="text"
       [(ngModel)]="search"
       (ngModelChange)="onSearchChange($event)"
-      placeholder="Search any listed company or ticker (e.g. Iberdrola, AMZN)"
+      [placeholder]="i18n.t('modal.searchPlaceholder')"
       class="search-input"
     />
 
     <div class="company-list">
       @if (isSearching) {
-        <p class="search-state">Searching listed companies…</p>
+        <p class="search-state">{{ i18n.t('modal.searching') }}</p>
       } @else if (showNoResults) {
-        <p class="search-state">No listed companies match “{{ search }}”.</p>
+        <p class="search-state">{{ i18n.t('modal.noResults', { term: search }) }}</p>
       }
       @for (company of filteredCompanies; track company.symbol) {
         <button type="button" class="company-item" [class.company-item-selected]="isChecked(company)" [attr.aria-pressed]="isChecked(company)" (click)="toggleCompany(company)">
@@ -39,8 +39,8 @@
 
             <div class="company-copy">
               <strong>{{ company.name }}</strong>
-              <span>{{ company.sector || 'Markets' }}</span>
-              <p>{{ company.summary }}</p>
+              <span>{{ i18n.sector(company.sector) }}</span>
+              <p>{{ i18n.companyBlurb(company) }}</p>
             </div>
           </div>
 
@@ -52,10 +52,10 @@
     </div>
 
     <div class="modal-footer">
-      <p>{{ tempSelection.length }} companies selected</p>
+      <p>{{ i18n.t('modal.selectedCount', { count: tempSelection.length }) }}</p>
       <div class="modal-actions">
-        <button class="secondary" (click)="close.emit()">Cancel</button>
-        <button class="primary" (click)="save()">Save watchlist</button>
+        <button class="secondary" (click)="close.emit()">{{ i18n.t('action.cancel') }}</button>
+        <button class="primary" (click)="save()">{{ i18n.t('modal.save') }}</button>
       </div>
     </div>
   </div>

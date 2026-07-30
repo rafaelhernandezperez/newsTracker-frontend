@@ -7,6 +7,14 @@
   font-family: Inter, "Segoe UI", sans-serif;
 }
 
+/* The login screens have no top bar, so the switcher anchors to the corner. */
+.login-language {
+  position: absolute;
+  z-index: 20;
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
 .background-paths {
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 32%),

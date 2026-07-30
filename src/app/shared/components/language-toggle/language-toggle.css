@@ -1,0 +1,49 @@
+:host {
+  display: inline-flex;
+}
+
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  border: 1px solid var(--nt-border);
+  border-radius: 999px;
+  background: var(--nt-surface);
+  padding: 0.2rem 0.25rem 0.2rem 0.6rem;
+}
+
+.lang-switch-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-right: 0.15rem;
+  color: var(--nt-text-faint);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.lang-switch-option {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.42rem 0.6rem;
+  color: var(--nt-text-faint);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.lang-switch-option:hover {
+  background: var(--nt-surface-hover);
+  color: var(--nt-text-strong);
+}
+
+/* Mirrors .topnav-link-active so the active language reads like active nav. */
+.lang-switch-option-active {
+  background: var(--nt-accent-soft);
+  color: var(--nt-text-strong);
+}

@@ -27,11 +27,13 @@ export class TickerSearchService {
               Boolean(item.symbol && item.name),
             )
             .map(
+              // Keep `exchange` raw instead of pre-rendering an English
+              // sentence: the UI localizes it at display time.
               (item): Company => ({
                 symbol: item.symbol.toUpperCase(),
                 name: item.name,
                 sector: item.sector || 'Markets',
-                summary: item.exchange ? `Listed on ${item.exchange}.` : undefined,
+                exchange: item.exchange,
               }),
             ),
         ),

@@ -9,13 +9,17 @@
     <header class="topbar">
       <a routerLink="/portfolio" class="brand-mark">NewsTracker</a>
 
-      <nav class="topnav" aria-label="Primary">
-        @for (item of navItems; track item.label) {
+      <nav class="topnav" [attr.aria-label]="i18n.t('nav.primaryAria')">
+        @for (item of navItems; track item.labelKey) {
           <a routerLink="/portfolio" class="topnav-link" [class.topnav-link-active]="item.active">
-            {{ item.label }}
+            {{ i18n.t(item.labelKey) }}
           </a>
         }
-        <button type="button" class="topnav-link logout-button" (click)="logout()">Log out</button>
+        <button type="button" class="topnav-link logout-button" (click)="logout()">
+          {{ i18n.t('nav.logout') }}
+        </button>
+        <span class="topnav-divider" aria-hidden="true"></span>
+        <app-language-toggle />
       </nav>
     </header>
 
@@ -23,13 +27,15 @@
       <aside class="dashboard-sidebar">
         <section class="sidebar-section">
           <div class="section-heading">
-            <p>Watchlist</p>
-            <button type="button" class="section-action" (click)="openModal()">Manage</button>
+            <p>{{ i18n.t('watchlist.title') }}</p>
+            <button type="button" class="section-action" (click)="openModal()">
+              {{ i18n.t('watchlist.manage') }}
+            </button>
           </div>
 
           <div class="watchlist">
             @if (isWatchlistLoading()) {
-              <p class="watchlist-empty">Loading your watchlist…</p>
+              <p class="watchlist-empty">{{ i18n.t('watchlist.loading') }}</p>
             } @else {
             @for (row of watchlistRows; track row.company.symbol) {
               <a class="watchlist-item" [routerLink]="['/portfolio', row.company.symbol]">
@@ -48,7 +54,7 @@
                 </span>
               </a>
             } @empty {
-              <p class="watchlist-empty">No companies yet. Use “Manage” to add some.</p>
+              <p class="watchlist-empty">{{ i18n.t('watchlist.empty') }}</p>
             }
             }
           </div>
@@ -59,14 +65,14 @@
       <section class="dashboard-main">
         <div class="dashboard-intro">
           <div>
-            <h1>Latest company news</h1>
+            <h1>{{ i18n.t('dashboard.title') }}</h1>
           </div>
         </div>
 
         <section class="news-stack">
           @if (isNewsLoading()) {
             <div class="news-empty-state">
-              <p>Loading the latest news for your companies…</p>
+              <p>{{ i18n.t('dashboard.newsLoading') }}</p>
             </div>
           } @else {
           @for (card of newsCards; track card.company.symbol) {
@@ -75,7 +81,7 @@
                 <span class="news-badge">{{ card.company.symbol }}</span>
                 <div class="news-card-meta">
                   <span class="news-card-dot"></span>
-                  <span>{{ card.company.sector || 'Markets' }}</span>
+                  <span>{{ i18n.sector(card.company.sector) }}</span>
                   @if (card.publishedAt) {
                     <span class="dot"></span>
                     <span class="news-card-date">{{ card.publishedAt }}</span>
@@ -84,8 +90,8 @@
               </div>
 
               @if (card.empty) {
-                <h2 class="news-card-empty-title">No recent news found</h2>
-                <p>We haven’t found recent coverage for {{ card.company.name }}. Try opening the company for a wider range.</p>
+                <h2 class="news-card-empty-title">{{ i18n.t('dashboard.noRecentNews') }}</h2>
+                <p>{{ i18n.t('dashboard.noRecentNewsBody', { company: card.company.name }) }}</p>
               } @else {
                 <h2>
                   <a class="news-headline-link" [href]="card.link" target="_blank" rel="noopener noreferrer">
@@ -98,13 +104,17 @@
               }
 
               <div class="news-card-actions">
-                <a class="news-card-link" [routerLink]="['/portfolio', card.company.symbol]">View more →</a>
+                <a class="news-card-link" [routerLink]="['/portfolio', card.company.symbol]">
+                  {{ i18n.t('dashboard.viewMore') }} →
+                </a>
               </div>
             </article>
           } @empty {
             <div class="news-empty-state">
-              <p>No companies in your watchlist yet.</p>
-              <button type="button" class="news-card-link" (click)="openModal()">Add companies →</button>
+              <p>{{ i18n.t('dashboard.noCompanies') }}</p>
+              <button type="button" class="news-card-link" (click)="openModal()">
+                {{ i18n.t('dashboard.addCompanies') }} →
+              </button>
             </div>
           }
           }

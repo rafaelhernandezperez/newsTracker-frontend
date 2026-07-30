@@ -13,6 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, tap } from 'rxjs';
 import { Company } from '../../../../core/models/company.model';
+import { LanguageService } from '../../../../core/services/language.service';
 import { TickerSearchService } from '../../../../core/services/ticker-search.service';
 
 @Component({
@@ -31,6 +32,7 @@ export class CompanySelectorModalComponent implements OnInit {
 
   private readonly tickerSearch = inject(TickerSearchService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly i18n = inject(LanguageService);
   private readonly searchTerms = new Subject<string>();
 
   search = '';

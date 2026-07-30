@@ -3,11 +3,14 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { COMPANIES } from '../../core/data/companies.data';
+import { TranslationKey } from '../../core/i18n/translations';
 import { AlertPrefs, UserPreferencesService } from '../../core/services/user-preferences.service';
 import { AuthService } from '../../core/services/auth.service';
+import { LanguageService } from '../../core/services/language.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
 import { PushService } from '../../core/services/push.service';
 import { AlertPrefsService } from '../../core/services/alert-prefs.service';
+import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 
 type Screen = 'welcome' | 'auth' | 'wizard';
 type StepKey = 'tickers' | 'alerts';
@@ -15,21 +18,21 @@ type AuthMode = 'login' | 'register';
 
 type Step = {
   key: StepKey;
-  eyebrow: string;
-  title: string;
-  description: string;
+  eyebrowKey: TranslationKey;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
 };
 
 type AlertPreference = {
   id: keyof AlertPrefs;
-  label: string;
+  labelKey: TranslationKey;
   enabled: boolean;
 };
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LanguageToggleComponent],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
@@ -40,6 +43,7 @@ export class Login {
   private readonly watchlist = inject(WatchlistService);
   private readonly push = inject(PushService);
   private readonly alertPrefsApi = inject(AlertPrefsService);
+  protected readonly i18n = inject(LanguageService);
 
   protected fullName = '';
   protected email = '';
@@ -56,15 +60,15 @@ export class Login {
   protected readonly steps: Step[] = [
     {
       key: 'tickers',
-      eyebrow: 'Step 1 of 2',
-      title: 'Pick your tickers',
-      description: `Choose stocks to follow. You can always change these.`,
+      eyebrowKey: 'wizard.step1Eyebrow',
+      titleKey: 'wizard.tickersTitle',
+      descriptionKey: 'wizard.tickersDescription',
     },
     {
       key: 'alerts',
-      eyebrow: 'Step 2 of 2',
-      title: 'Alert preferences',
-      description: 'When should we notify you?',
+      eyebrowKey: 'wizard.step2Eyebrow',
+      titleKey: 'wizard.alertsTitle',
+      descriptionKey: 'wizard.alertsDescription',
     },
   ];
 
@@ -77,9 +81,9 @@ export class Login {
   // Ids match the backend AlertPrefs fields; all on by default, mirroring the
   // server-side default for users who never save preferences.
   protected readonly alertPreferences = signal<AlertPreference[]>([
-    { id: 'priceMoves', label: 'Big price moves (>3%)', enabled: true },
-    { id: 'highImpact', label: 'High-impact news', enabled: true },
-    { id: 'dailyDigest', label: 'Daily digest (9am)', enabled: true },
+    { id: 'priceMoves', labelKey: 'alerts.priceMoves', enabled: true },
+    { id: 'highImpact', labelKey: 'alerts.highImpact', enabled: true },
+    { id: 'dailyDigest', labelKey: 'alerts.dailyDigest', enabled: true },
   ]);
 
   protected readonly activeStep = computed<Step>(() => this.steps[this.currentStep()]);
@@ -122,12 +126,12 @@ export class Login {
     this.authError.set('');
 
     if (!this.email.trim() || !this.password) {
-      this.authError.set('Introduce tu email y contraseña.');
+      this.authError.set(this.i18n.t('auth.missingCredentials'));
       return;
     }
 
     if (this.authMode() === 'register' && this.password !== this.confirmPassword) {
-      this.authError.set('Las contraseñas no coinciden.');
+      this.authError.set(this.i18n.t('auth.passwordMismatch'));
       return;
     }
 
@@ -202,21 +206,21 @@ export class Login {
   private authErrorMessage(error: unknown): string {
     const code = (error as { code?: string })?.code ?? '';
     if (code === 'auth/invalid-api-key' || code.startsWith('auth/api-key-not-valid')) {
-      return 'Configuración de Firebase incompleta (firebase.config.ts).';
+      return this.i18n.t('auth.firebaseMisconfigured');
     }
     switch (code) {
       case 'auth/invalid-credential':
       case 'auth/wrong-password':
       case 'auth/user-not-found':
-        return 'Email o contraseña incorrectos.';
+        return this.i18n.t('auth.invalidCredentials');
       case 'auth/email-already-in-use':
-        return 'Ya existe una cuenta con este email.';
+        return this.i18n.t('auth.emailInUse');
       case 'auth/weak-password':
-        return 'La contraseña debe tener al menos 6 caracteres.';
+        return this.i18n.t('auth.weakPassword');
       case 'auth/invalid-email':
-        return 'El email no es válido.';
+        return this.i18n.t('auth.invalidEmail');
       default:
-        return 'No se pudo completar la operación. Inténtalo de nuevo.';
+        return this.i18n.t('auth.generic');
     }
   }
 

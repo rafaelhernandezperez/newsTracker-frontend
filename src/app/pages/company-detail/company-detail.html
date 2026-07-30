@@ -9,17 +9,21 @@
     <header class="topbar">
       <a routerLink="/portfolio" class="brand-mark">NewsTracker</a>
 
-      <nav class="topnav" aria-label="Primary">
-        @for (item of navItems; track item.label) {
+      <nav class="topnav" [attr.aria-label]="i18n.t('nav.primaryAria')">
+        @for (item of navItems; track item.labelKey) {
           <a
             [routerLink]="item.link"
             class="topnav-link"
             [class.topnav-link-active]="item.active"
           >
-            {{ item.label }}
+            {{ i18n.t(item.labelKey) }}
           </a>
         }
-        <button type="button" class="topnav-link logout-button" (click)="logout()">Log out</button>
+        <button type="button" class="topnav-link logout-button" (click)="logout()">
+          {{ i18n.t('nav.logout') }}
+        </button>
+        <span class="topnav-divider" aria-hidden="true"></span>
+        <app-language-toggle />
       </nav>
     </header>
 
@@ -31,8 +35,8 @@
         >
           <section class="sidebar-section">
             <div class="section-heading">
-              <p>Watchlist</p>
-              <a routerLink="/portfolio" class="section-action">Manage</a>
+              <p>{{ i18n.t('watchlist.title') }}</p>
+              <a routerLink="/portfolio" class="section-action">{{ i18n.t('watchlist.manage') }}</a>
             </div>
 
             <div class="watchlist">
@@ -64,7 +68,7 @@
           <div class="detail-header">
             <div>
               <button type="button" class="watchlist-toggle" (click)="toggleWatchlist()">
-                {{ isWatchlistOpen ? 'Hide watchlist' : 'Show watchlist' }}
+                {{ isWatchlistOpen ? i18n.t('detail.hideWatchlist') : i18n.t('detail.showWatchlist') }}
               </button>
 
               <div class="headline-row">
@@ -78,17 +82,17 @@
                   @if (quote?.change != null) {
                     {{ quoteDirection === 'positive' ? '▲' : '▼' }}
                   }
-                  {{ absoluteChangeLabel }} today
+                  {{ absoluteChangeLabel }} {{ i18n.t('detail.today') }}
                 </span>
               </div>
 
               <p class="company-meta">
                 {{ company.name }}
                 <span>·</span>
-                {{ company.sector || 'Markets' }}
+                {{ i18n.sector(company.sector) }}
                 @if (lastUpdatedLabel) {
                   <span>·</span>
-                  Updated {{ lastUpdatedLabel }}
+                  {{ i18n.t('detail.updatedAt', { time: lastUpdatedLabel }) }}
                 }
               </p>
 
@@ -112,29 +116,29 @@
               #chartContainer
               class="chart"
               role="img"
-              [attr.aria-label]="'Price history for ' + company.name"
+              [attr.aria-label]="i18n.t('chart.ariaLabel', { company: company.name })"
             ></div>
 
             @if (isLoading) {
-              <div class="chart-state">Loading chart...</div>
+              <div class="chart-state">{{ i18n.t('chart.loading') }}</div>
             } @else if (errorMessage) {
               <div class="chart-state">{{ errorMessage }}</div>
             } @else if (!hasChartData) {
-              <div class="chart-state">Not enough price history to draw the chart.</div>
+              <div class="chart-state">{{ i18n.t('chart.noData') }}</div>
             }
 
             <div class="chart-legend" aria-hidden="true">
-              <span class="legend-note">Circles mark news on its publish date — size = AI importance, color = sentiment.</span>
-              <span class="legend-item"><span class="legend-dot legend-dot-positive"></span> Positive</span>
-              <span class="legend-item"><span class="legend-dot legend-dot-negative"></span> Negative</span>
-              <span class="legend-item"><span class="legend-dot legend-dot-neutral"></span> Neutral</span>
+              <span class="legend-note">{{ i18n.t('chart.legendNote') }}</span>
+              <span class="legend-item"><span class="legend-dot legend-dot-positive"></span> {{ i18n.t('chart.positive') }}</span>
+              <span class="legend-item"><span class="legend-dot legend-dot-negative"></span> {{ i18n.t('chart.negative') }}</span>
+              <span class="legend-item"><span class="legend-dot legend-dot-neutral"></span> {{ i18n.t('chart.neutral') }}</span>
             </div>
           </section>
 
           <section class="stats-grid">
-            @for (stat of statCards; track stat.label) {
+            @for (stat of statCards; track stat.labelKey) {
               <article class="stat-card">
-                <p>{{ stat.label }}</p>
+                <p>{{ i18n.t(stat.labelKey) }}</p>
                 <strong>{{ stat.value }}</strong>
               </article>
             }
@@ -142,7 +146,13 @@
 
           <section class="related-news">
             <div class="section-heading">
-              <p>{{ activeTimeframe === '5D' ? "Today's related news" : 'Related news' }}</p>
+              <p>
+                {{
+                  activeTimeframe === '5D'
+                    ? i18n.t('detail.todaysRelatedNews')
+                    : i18n.t('detail.relatedNews')
+                }}
+              </p>
             </div>
 
             <div class="related-news-list">
@@ -169,13 +179,17 @@
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {{ isSpanish(item.language) ? 'Leer artículo completo' : 'Read full article' }}
+                      {{ i18n.t('news.readFullArticle') }}
                     </a>
                   }
                 </article>
               } @empty {
                 <p class="related-news-empty">
-                  {{ activeTimeframe === '5D' ? 'No RSS articles found today.' : 'No articles found for this range.' }}
+                  {{
+                    activeTimeframe === '5D'
+                      ? i18n.t('detail.noRssToday')
+                      : i18n.t('detail.noArticlesInRange')
+                  }}
                 </p>
               }
             </div>
@@ -184,8 +198,8 @@
       </div>
     } @else {
       <section class="missing-state">
-        <h1>Company not found</h1>
-        <p>We couldn’t find the company you selected.</p>
+        <h1>{{ i18n.t('detail.companyNotFound') }}</h1>
+        <p>{{ i18n.t('detail.companyNotFoundBody') }}</p>
       </section>
     }
   </div>
@@ -205,11 +219,13 @@
             <h2 id="news-modal-title">{{ selectedNewsItem.title }}</h2>
           </div>
           <button type="button" class="news-modal-close" (click)="closeNewsModal()">
-            {{ isSpanish(selectedNewsItem.language) ? 'Cerrar' : 'Close' }}
+            {{ i18n.t('action.close') }}
           </button>
         </div>
 
-        <p class="news-modal-summary">{{ selectedNewsItem.summary }}</p>
+        <p class="news-modal-summary">
+          {{ selectedNewsItem.summary || i18n.t('news.summaryUnavailable') }}
+        </p>
 
         <div class="related-news-tags">
           @for (tag of selectedNewsItem.tags; track tag) {
@@ -224,7 +240,7 @@
             target="_blank"
             rel="noopener noreferrer"
           >
-            {{ isSpanish(selectedNewsItem.language) ? 'Leer artículo completo' : 'Read full article' }}
+            {{ i18n.t('news.readFullArticle') }}
           </a>
         }
       </section>

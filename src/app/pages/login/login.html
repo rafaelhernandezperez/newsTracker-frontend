@@ -35,16 +35,17 @@
     <div class="vignette"></div>
   </div>
 
+  <app-language-toggle class="login-language" />
+
   @if (screen() === 'welcome') {
     <section class="relative flex min-h-screen items-center justify-center px-6 py-12 sm:px-10">
       <div class="relative z-10 flex w-full max-w-5xl flex-col items-center text-center">
         <p class="text-xs font-medium uppercase tracking-[0.45em] text-white/70">NewsTracker</p>
         <h1 class="mt-6 text-5xl font-semibold tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
-          The news moving<br class="hidden sm:block" /> your portfolio
+          {{ i18n.t('login.heroLine1') }}<br class="hidden sm:block" /> {{ i18n.t('login.heroLine2') }}
         </h1>
         <p class="mt-6 max-w-xl text-base leading-7 text-white/70">
-          Follow the companies you care about, and catch the headlines that
-          move them — in one focused dashboard.
+          {{ i18n.t('login.heroSubtitle') }}
         </p>
 
         <button
@@ -52,7 +53,7 @@
           (click)="startFlow()"
           class="mt-10 inline-flex items-center gap-3 rounded-full border border-white/15 bg-black/60 px-7 py-3 text-base font-semibold text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] transition hover:border-white/25 hover:bg-black/80"
         >
-          Get started
+          {{ i18n.t('login.getStarted') }}
           <span aria-hidden="true" class="text-lg leading-none">→</span>
         </button>
       </div>
@@ -69,7 +70,7 @@
             class="rounded-full px-4 py-2 text-sm font-medium transition"
             [ngClass]="authMode() === 'login' ? 'bg-white text-[#171717]' : 'text-white/72 hover:text-white'"
           >
-            Log in
+            {{ i18n.t('login.logIn') }}
           </button>
           <button
             type="button"
@@ -77,20 +78,22 @@
             class="rounded-full px-4 py-2 text-sm font-medium transition"
             [ngClass]="authMode() === 'register' ? 'bg-white text-[#171717]' : 'text-white/72 hover:text-white'"
           >
-            Register
+            {{ i18n.t('login.register') }}
           </button>
         </div>
 
         <div class="text-center">
-          <p class="text-xs font-medium uppercase tracking-[0.38em] text-white/70">Account</p>
+          <p class="text-xs font-medium uppercase tracking-[0.38em] text-white/70">
+            {{ i18n.t('login.accountEyebrow') }}
+          </p>
           <h2 class="mt-5 text-[2rem] font-semibold tracking-[-0.05em] text-white">
-            {{ authMode() === 'login' ? 'Log in to your account' : 'Create your account' }}
+            {{ authMode() === 'login' ? i18n.t('login.logInTitle') : i18n.t('login.registerTitle') }}
           </h2>
           <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/70">
             {{
               authMode() === 'login'
-                ? 'Sign in first, then we’ll help you choose the companies you want to follow.'
-                : 'Set up your account first, then personalize the companies you want to follow.'
+                ? i18n.t('login.logInSubtitle')
+                : i18n.t('login.registerSubtitle')
             }}
           </p>
         </div>
@@ -98,20 +101,24 @@
         <form class="mt-8 space-y-4" (submit)="$event.preventDefault(); submitAuth()">
           @if (authMode() === 'register') {
             <label class="block">
-              <span class="mb-2 block text-sm font-medium text-white/70">Full name</span>
+              <span class="mb-2 block text-sm font-medium text-white/70">
+                {{ i18n.t('login.fullName') }}
+              </span>
               <input
                 type="text"
                 name="fullName"
                 autocomplete="name"
                 [(ngModel)]="fullName"
-                placeholder="Your name"
+                [placeholder]="i18n.t('login.fullNamePlaceholder')"
                 class="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/45 focus:border-white/25"
               />
             </label>
           }
 
           <label class="block">
-            <span class="mb-2 block text-sm font-medium text-white/70">Email</span>
+            <span class="mb-2 block text-sm font-medium text-white/70">
+              {{ i18n.t('login.email') }}
+            </span>
             <input
               type="email"
               name="email"
@@ -124,7 +131,9 @@
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-medium text-white/70">Password</span>
+            <span class="mb-2 block text-sm font-medium text-white/70">
+              {{ i18n.t('login.password') }}
+            </span>
             <input
               type="password"
               name="password"
@@ -138,7 +147,9 @@
 
           @if (authMode() === 'register') {
             <label class="block">
-              <span class="mb-2 block text-sm font-medium text-white/70">Confirm password</span>
+              <span class="mb-2 block text-sm font-medium text-white/70">
+                {{ i18n.t('login.confirmPassword') }}
+              </span>
               <input
                 type="password"
                 name="confirmPassword"
@@ -162,22 +173,28 @@
             [disabled]="authBusy()"
             class="mt-3 w-full rounded-2xl border border-white/18 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {{ authBusy() ? 'Please wait…' : (authMode() === 'login' ? 'Continue' : 'Create account') }}
+            {{
+              authBusy()
+                ? i18n.t('login.pleaseWait')
+                : authMode() === 'login'
+                  ? i18n.t('login.continue')
+                  : i18n.t('login.createAccount')
+            }}
           </button>
         </form>
 
         <p class="mt-5 text-center text-sm text-white/72">
           {{
             authMode() === 'login'
-              ? 'First time here?'
-              : 'Already have an account?'
+              ? i18n.t('login.firstTime')
+              : i18n.t('login.alreadyHaveAccount')
           }}
           <button
             type="button"
             class="ml-1 font-medium text-white/80 transition hover:text-white"
             (click)="setAuthMode(authMode() === 'login' ? 'register' : 'login')"
           >
-            {{ authMode() === 'login' ? 'Register' : 'Log in' }}
+            {{ authMode() === 'login' ? i18n.t('login.register') : i18n.t('login.logIn') }}
           </button>
         </p>
 
@@ -186,7 +203,7 @@
           (click)="goBack()"
           class="mt-4 w-full rounded-2xl border border-transparent px-4 py-3 text-sm font-medium text-white/70 transition hover:text-white/80"
         >
-          Back
+          {{ i18n.t('action.back') }}
         </button>
       </div>
     </section>
@@ -205,9 +222,13 @@
         </div>
 
         <div class="mt-8 text-center">
-          <p class="text-sm text-white/72">{{ activeStep().eyebrow }}</p>
-          <h2 class="mt-4 text-[1.9rem] font-semibold tracking-[-0.04em] text-white">{{ activeStep().title }}</h2>
-          <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/72">{{ activeStep().description }}</p>
+          <p class="text-sm text-white/72">{{ i18n.t(activeStep().eyebrowKey) }}</p>
+          <h2 class="mt-4 text-[1.9rem] font-semibold tracking-[-0.04em] text-white">
+            {{ i18n.t(activeStep().titleKey) }}
+          </h2>
+          <p class="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/72">
+            {{ i18n.t(activeStep().descriptionKey) }}
+          </p>
         </div>
 
         @if (activeStep().key === 'tickers') {
@@ -239,7 +260,7 @@
                 [attr.aria-pressed]="preference.enabled"
                 class="flex w-full items-center justify-between gap-4 border-b border-white/10 py-3 text-left last:border-b-0"
               >
-                <span class="text-sm font-medium text-white/90">{{ preference.label }}</span>
+                <span class="text-sm font-medium text-white/90">{{ i18n.t(preference.labelKey) }}</span>
                 <span
                   class="relative inline-flex h-6 w-11 rounded-full transition"
                   [ngClass]="preference.enabled ? 'bg-[#7aa7ff]' : 'bg-white/20'"
@@ -261,7 +282,7 @@
             (click)="goBack()"
             class="flex-1 rounded-2xl border border-white/12 px-4 py-3 text-sm font-medium text-white/70 transition hover:border-white/20 hover:text-white"
           >
-            {{ currentStep() === 0 ? 'Back' : 'Previous' }}
+            {{ currentStep() === 0 ? i18n.t('action.back') : i18n.t('action.previous') }}
           </button>
 
           <button
@@ -269,7 +290,7 @@
             (click)="continue()"
             class="flex-1 rounded-2xl border border-white/18 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
           >
-            {{ isLastStep() ? 'Get started' : 'Next' }}
+            {{ isLastStep() ? i18n.t('login.getStarted') : i18n.t('action.next') }}
           </button>
         </div>
       </div>

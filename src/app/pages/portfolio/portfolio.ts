@@ -1,21 +1,25 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { COMPANIES } from '../../core/data/companies.data';
+import { newsHeadline, newsSummary } from '../../core/i18n/news-text';
+import { TranslationKey } from '../../core/i18n/translations';
 import { Company } from '../../core/models/company.model';
 import { MarketQuote } from '../../core/models/market.model';
 import { NewsItem } from '../../core/models/news.model';
+import { LanguageService } from '../../core/services/language.service';
 import { MarketDataService } from '../../core/services/market-data.service';
 import { NewsDataService } from '../../core/services/news-data.service';
 import { UserPreferencesService } from '../../core/services/user-preferences.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
+import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 import { CompanySelectorModalComponent } from './components/company-selector-modal/company-selector-modal';
 
 type NavItem = {
-  label: string;
+  labelKey: TranslationKey;
   active?: boolean;
 };
 
@@ -51,7 +55,7 @@ const IMPORTANCE_RANK: Record<string, number> = {
 @Component({
   selector: 'app-portfolio',
   standalone: true,
-  imports: [CommonModule, RouterLink, CompanySelectorModalComponent],
+  imports: [CommonModule, RouterLink, CompanySelectorModalComponent, LanguageToggleComponent],
   templateUrl: './portfolio.html',
   styleUrl: './portfolio.css',
 })
@@ -64,6 +68,9 @@ export class PortfolioComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  readonly i18n = inject(LanguageService);
+  /** Language the cards on screen were fetched in; drives the refetch below. */
+  private loadedLanguage = this.i18n.language();
 
   isModalOpen = false;
 
@@ -72,11 +79,28 @@ export class PortfolioComponent implements OnInit {
   readonly isNewsLoading = signal(false);
 
   readonly availableCompanies: Company[] = COMPANIES;
-  readonly navItems: NavItem[] = [{ label: 'Dashboard', active: true }];
+  readonly navItems: NavItem[] = [{ labelKey: 'nav.dashboard', active: true }];
 
   selectedCompanies: Company[] = [];
   watchlistRows: WatchlistRow[] = [];
   newsCards: NewsCard[] = [];
+
+  constructor() {
+    // Headlines and summaries are generated server-side in the requested
+    // language, so a language switch has to refetch — re-rendering the cached
+    // cards would leave the previous language's text on screen. Initialized to
+    // the current language, so the first run here never duplicates ngOnInit.
+    effect(() => {
+      const language = this.i18n.language();
+
+      if (language === this.loadedLanguage) {
+        return;
+      }
+
+      this.loadedLanguage = language;
+      this.loadNewsCards(this.selectedCompanies);
+    });
+  }
 
   ngOnInit(): void {
     this.selectedCompanies = this.resolveCompanies();
@@ -263,10 +287,10 @@ export class PortfolioComponent implements OnInit {
 
     return {
       company,
-      headline: newsItem.localizedTitle?.trim() || newsItem.title,
-      snippet: newsItem.aiSummary?.trim() || newsItem.summary?.trim() || '',
+      headline: newsHeadline(newsItem),
+      snippet: newsSummary(newsItem, this.i18n.language()),
       link: newsItem.link,
-      publishedAt: this.formatNewsDate(newsItem.isoDate ?? newsItem.pubDate),
+      publishedAt: this.i18n.formatLongDate(newsItem.isoDate ?? newsItem.pubDate),
       accent: this.getAccentFromNews(newsItem),
       empty: false,
       importanceRank: this.importanceRankOf(newsItem),
@@ -289,23 +313,5 @@ export class PortfolioComponent implements OnInit {
     }
 
     return 'blue';
-  }
-
-  private formatNewsDate(value?: string): string {
-    if (!value) {
-      return 'Latest update';
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return 'Latest update';
-    }
-
-    return new Intl.DateTimeFormat('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(date);
   }
 }

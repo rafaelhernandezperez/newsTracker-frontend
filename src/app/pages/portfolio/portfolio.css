@@ -75,6 +75,7 @@
 .topnav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.35rem;
 }
 
@@ -96,6 +97,14 @@
 .topnav-link-active {
   background: var(--nt-accent-soft);
   color: var(--nt-text-strong);
+}
+
+/* Hairline separating the nav actions from the language switcher. */
+.topnav-divider {
+  width: 1px;
+  height: 1.35rem;
+  margin: 0 0.4rem;
+  background: var(--nt-border-strong);
 }
 
 .dashboard-frame {

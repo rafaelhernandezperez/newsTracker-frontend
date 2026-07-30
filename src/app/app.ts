@@ -2,7 +2,6 @@ import { Component, effect, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
 import { PushService } from './core/services/push.service';
-import { AppLanguage, LanguageService } from './core/services/language.service';
 
 @Component({
   selector: 'app-root',
@@ -13,17 +12,7 @@ import { AppLanguage, LanguageService } from './core/services/language.service';
 export class App {
   private readonly auth = inject(AuthService);
   private readonly push = inject(PushService);
-  readonly languageService = inject(LanguageService);
   private pushRefreshed = false;
-
-  setLanguage(language: AppLanguage): void {
-    if (language === this.languageService.language()) {
-      return;
-    }
-
-    this.languageService.setLanguage(language);
-    window.location.reload();
-  }
 
   constructor() {
     // Returning session: re-register the FCM device token once auth resolves.
