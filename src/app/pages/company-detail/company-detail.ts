@@ -17,14 +17,18 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
+  EMPTY,
   Observable,
   Subject,
+  Subscription,
   catchError,
   distinctUntilChanged,
   forkJoin,
   map,
   of,
   switchMap,
+  tap,
+  timer,
   timeout,
 } from 'rxjs';
 import {
@@ -140,6 +144,8 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   private symbol = this.route.snapshot.paramMap.get('symbol');
   /** Timeframe selections; switchMap cancels the in-flight requests on a new pick. */
   private readonly timeframe$ = new Subject<TimeframeOption>();
+  /** Low-priority requests warming the service caches for likely next ranges. */
+  private readonly prefetchSubscriptions = new Map<TimeframeOption['label'], Subscription>();
 
   @ViewChild('chartContainer') private chartContainer?: ElementRef<HTMLDivElement>;
   private chart?: IChartApi;
@@ -154,7 +160,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     { label: '3M', days: 90 },
     { label: '1Y', days: 365 },
   ];
-  activeTimeframe: TimeframeOption['label'] = '1M';
+  activeTimeframe: TimeframeOption['label'] = '5D';
   isWatchlistOpen = false;
   /** The watchlist editor, opened from "Manage" without leaving this page. */
   isManageOpen = false;
@@ -207,7 +213,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       this.selectedNewsItem = null;
 
       if (this.symbol) {
+        this.resetTimeframePrefetches();
         this.timeframe$.next(this.getTimeframeOption(this.activeTimeframe));
+        this.prefetchNextTimeframe(this.activeTimeframe);
       }
     });
 
@@ -245,8 +253,10 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private onSymbolChange(symbol: string | null): void {
+    this.resetTimeframePrefetches();
     this.symbol = symbol;
     this.company = this.findCompany(symbol);
+    this.activeTimeframe = '5D';
 
     if (!symbol) {
       this.isLoading = false;
@@ -269,6 +279,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.buildChart();
 
     this.timeframe$.next(this.getTimeframeOption(this.activeTimeframe));
+    this.prefetchNextTimeframe(this.activeTimeframe);
   }
 
   private loadWatchlist(): void {
@@ -368,6 +379,48 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     this.activeTimeframe = timeframe.label;
     this.timeframe$.next(timeframe);
+    this.prefetchNextTimeframe(timeframe.label);
+  }
+
+  /**
+   * Warm the exact service-cache keys the next likely selection will use.
+   * A short delay gives the visible range priority; if the user clicks early,
+   * their foreground subscription joins the same shared HTTP observables.
+   */
+  private prefetchNextTimeframe(current: TimeframeOption['label']): void {
+    const nextLabel = current === '5D' ? '1M' : current === '1M' ? '3M' : null;
+    if (!nextLabel || !this.symbol || this.prefetchSubscriptions.has(nextLabel)) {
+      return;
+    }
+
+    const symbol = this.symbol;
+    const companyName = this.company?.name;
+    const timeframe = this.getTimeframeOption(nextLabel);
+    const subscription = timer(600)
+      .pipe(
+        switchMap(() =>
+          forkJoin({
+            market: this.marketDataService.getCompanyMarketData(symbol, timeframe.days),
+            news: this.newsDataService.getCompanyNews(symbol, companyName, {
+              limit: this.newsLimitForTimeframe(timeframe.days),
+              range: timeframe.label,
+              daysBack: timeframe.days,
+            }),
+          }),
+        ),
+        catchError(() => EMPTY),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
+
+    this.prefetchSubscriptions.set(nextLabel, subscription);
+  }
+
+  private resetTimeframePrefetches(): void {
+    for (const subscription of this.prefetchSubscriptions.values()) {
+      subscription.unsubscribe();
+    }
+    this.prefetchSubscriptions.clear();
   }
 
   get absoluteChangeLabel(): string {
@@ -462,6 +515,10 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         console.error('[company-detail] Market request failed:', error);
         return of({ response: null, error: this.getMarketErrorMessage(error) });
       }),
+      // Market data is normally much faster than AI-localized news. Apply it
+      // immediately so prices, stats, and the chart render without waiting for
+      // every translation request in the forkJoin below.
+      tap((market) => this.applyMarketData(market)),
     );
 
     const chartNews$ = this.newsDataService
@@ -497,11 +554,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return forkJoin({ market: market$, chartNews: chartNews$, relatedNews: relatedNews$ });
   }
 
-  /** Apply a timeframe's market + news payload and redraw the chart once. */
-  private applyTimeframeData({ market, chartNews, relatedNews }: TimeframeData): void {
+  /** Apply the fast market payload independently of slower localized news. */
+  private applyMarketData(market: TimeframeData['market']): void {
     this.isLoading = false;
-    this.chartNewsItems = chartNews;
-    this.relatedNewsItems = relatedNews;
 
     if (market.response) {
       try {
@@ -522,12 +577,21 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.changeDetectorRef.markForCheck();
   }
 
+  /** Add news and chart markers when localization finishes. */
+  private applyTimeframeData({ chartNews, relatedNews }: TimeframeData): void {
+    this.chartNewsItems = chartNews;
+    this.relatedNewsItems = relatedNews;
+    this.buildChart();
+    this.changeDetectorRef.markForCheck();
+  }
+
   ngAfterViewInit(): void {
     this.createChart();
     this.buildChart();
   }
 
   ngOnDestroy(): void {
+    this.resetTimeframePrefetches();
     this.markersPlugin = undefined;
     this.series = undefined;
     this.chart?.remove();

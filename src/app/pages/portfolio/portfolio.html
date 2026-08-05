@@ -70,7 +70,7 @@
         </div>
 
         <section class="news-stack">
-          @if (isNewsLoading()) {
+          @if (isNewsLoading() && newsCards.length === 0) {
             <div class="news-empty-state">
               <p>{{ i18n.t('dashboard.newsLoading') }}</p>
             </div>

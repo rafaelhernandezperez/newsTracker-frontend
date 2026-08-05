@@ -2,7 +2,19 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, finalize, forkJoin, map, of } from 'rxjs';
+import {
+  EMPTY,
+  Subscription,
+  catchError,
+  concat,
+  filter,
+  finalize,
+  forkJoin,
+  from,
+  map,
+  mergeMap,
+  of,
+} from 'rxjs';
 import { COMPANIES } from '../../core/data/companies.data';
 import { newsHeadline, newsSummary } from '../../core/i18n/news-text';
 import { TranslationKey } from '../../core/i18n/translations';
@@ -71,6 +83,9 @@ export class PortfolioComponent implements OnInit {
   readonly i18n = inject(LanguageService);
   /** Language the cards on screen were fetched in; drives the refetch below. */
   private loadedLanguage = this.i18n.language();
+  /** Invalidates slower news requests when the language or watchlist changes. */
+  private newsRequestId = 0;
+  private newsLoadSubscription?: Subscription;
 
   isModalOpen = false;
 
@@ -207,34 +222,92 @@ export class PortfolioComponent implements OnInit {
   }
 
   private loadNewsCards(companies: Company[]): void {
+    const requestId = ++this.newsRequestId;
+    const requestedLanguage = this.i18n.language();
+    this.newsLoadSubscription?.unsubscribe();
+
     if (!companies.length) {
       this.newsCards = [];
+      this.isNewsLoading.set(false);
       this.changeDetectorRef.markForCheck();
       return;
     }
 
     this.isNewsLoading.set(true);
+    this.newsCards = [];
 
-    forkJoin(
-      companies.map((company) =>
-        // Small recent window (3 days, like the tracker) instead of limit 1:
-        // "the newest item ever" is often a weak mention, while the pick below
-        // surfaces the most meaningful recent story per company.
-        this.newsDataService.getCompanyNews(company.symbol, company.name, { limit: 5, daysBack: 3 }).pipe(
-          map((response) => this.mapNewsCard(company, this.pickMostMeaningful(response.items))),
-          catchError(() => of(this.mapNewsCard(company, null))),
-        ),
+    // Phase 1: paint every company from a native-language RSS result. These
+    // calls do no AI work and finish in roughly source-network time.
+    const immediateCards$ = from(companies).pipe(
+      mergeMap(
+        (company) =>
+          this.newsDataService
+            .getCompanyNews(company.symbol, company.name, {
+              limit: 1,
+              daysBack: 3,
+              rssOnly: true,
+              enrich: false,
+              sourceLanguage: requestedLanguage,
+            })
+            .pipe(
+              map((response) =>
+                response.items[0]
+                  ? this.mapNewsCard(company, response.items[0])
+                  : null,
+              ),
+              filter((card): card is NewsCard => card !== null),
+              catchError(() => EMPTY),
+            ),
+        6,
       ),
-    )
+    );
+
+    // Phase 2: replace previews with fully translated/classified results.
+    // Each dashboard card displays one story; requesting five previously made
+    // the model generate roughly five times as much content per company.
+    const enrichedCards$ = from(companies).pipe(
+      mergeMap(
+        (company) =>
+          this.newsDataService
+            .getCompanyNews(company.symbol, company.name, {
+              limit: 1,
+              daysBack: 3,
+              rssOnly: true,
+            })
+            .pipe(
+              map((response) => this.mapNewsCard(company, response.items[0])),
+              catchError(() => of(this.mapNewsCard(company, null))),
+            ),
+        // Avoid flooding the inference provider on larger watchlists.
+        4,
+      ),
+    );
+
+    this.newsLoadSubscription = concat(immediateCards$, enrichedCards$)
       .pipe(
-        finalize(() => this.isNewsLoading.set(false)),
+        finalize(() => {
+          if (requestId === this.newsRequestId) {
+            this.isNewsLoading.set(false);
+          }
+        }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((cards) => {
-        // Most meaningful story first (importance, then relevance, then
-        // recency — the same ranking the daily digest uses); companies with
-        // no recent news sink to the bottom.
-        this.newsCards = [...cards].sort(
+      .subscribe((card) => {
+        // Translation calls can be slow. Never let an older request (for
+        // example `lang=es`) overwrite a newer request after the user has
+        // switched the interface to English.
+        if (requestId !== this.newsRequestId) {
+          return;
+        }
+
+        // Render each company as soon as it resolves instead of waiting for
+        // the slowest request in the watchlist.
+        this.newsCards = [
+          ...this.newsCards.filter(
+            (existing) => existing.company.symbol !== card.company.symbol,
+          ),
+          card,
+        ].sort(
           (a, b) =>
             b.importanceRank - a.importanceRank ||
             b.score - a.score ||
@@ -242,16 +315,6 @@ export class PortfolioComponent implements OnInit {
         );
         this.changeDetectorRef.markForCheck();
       });
-  }
-
-  /** Best story by the digest's ranking: importance, then score, then recency. */
-  private pickMostMeaningful(items: NewsItem[]): NewsItem | undefined {
-    return [...items].sort(
-      (a, b) =>
-        this.importanceRankOf(b) - this.importanceRankOf(a) ||
-        b.score - a.score ||
-        this.publishedMsOf(b) - this.publishedMsOf(a),
-    )[0];
   }
 
   private importanceRankOf(item: NewsItem): number {

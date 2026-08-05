@@ -5,7 +5,10 @@ import { NewsImportance, NewsItem, NewsResponse, NewsSentiment } from '../models
 import { LanguageService } from './language.service';
 
 /** How long an identical request is served from memory instead of refetched. */
-const CACHE_TTL_MS = 60_000;
+// News translations are stable for a while and expensive to regenerate.
+// Keeping them across normal dashboard/detail navigation makes revisits
+// instant while the backend's five-minute feed cache is still fresh.
+const CACHE_TTL_MS = 5 * 60_000;
 
 const IMPORTANCE_VALUES: NewsImportance[] = [
   'MUY_IMPORTANTE',
@@ -22,6 +25,8 @@ export interface CompanyNewsQuery {
   to?: string;
   daysBack?: number;
   rssOnly?: boolean;
+  enrich?: boolean;
+  sourceLanguage?: 'en' | 'es';
 }
 
 @Injectable({
@@ -68,6 +73,14 @@ export class NewsDataService {
       params['rssOnly'] = 'true';
     }
 
+    if (query.enrich === false) {
+      params['enrich'] = 'false';
+    }
+
+    if (query.sourceLanguage) {
+      params['sourceLanguage'] = query.sourceLanguage;
+    }
+
     const key = `${ticker.toUpperCase()}:${JSON.stringify(params)}`;
     const cached = this.cache.get(key);
 
@@ -84,7 +97,9 @@ export class NewsDataService {
           this.cache.delete(key);
           return throwError(() => error);
         }),
-        shareReplay({ bufferSize: 1, refCount: false }),
+        // Let a language/timeframe switch cancel HTTP that no view needs any
+        // more. Completed responses remain replayable from this TTL cache.
+        shareReplay({ bufferSize: 1, refCount: true }),
       );
 
     this.cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, response$ });
