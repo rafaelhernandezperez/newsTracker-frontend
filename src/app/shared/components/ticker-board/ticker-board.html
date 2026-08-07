@@ -1,0 +1,19 @@
+<div class="board" [style.grid-template-columns]="gridColumns()">
+  @for (cell of cells(); track cell.id) {
+    <div
+      class="cell"
+      [class.is-up]="cell.trend === 'up'"
+      [class.is-down]="cell.trend === 'down'"
+      [class.is-flat]="cell.trend === 'flat'"
+      [class.is-flash]="cell.flash"
+    >
+      <span class="cell-symbol">{{ cell.symbol }}</span>
+      <span class="cell-price">{{ cell.priceText }}</span>
+      <span class="cell-change">{{ cell.changeText }}</span>
+    </div>
+  }
+</div>
+
+<div class="scanlines"></div>
+<div class="vignette"></div>
+<div class="shockwave"></div>

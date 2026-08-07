@@ -4,219 +4,215 @@
 
 .login-shell {
   position: relative;
-  font-family: Inter, "Segoe UI", sans-serif;
+  background: #000;
+  font-family: var(--nt-font-sans);
+}
+
+/* Faint lift behind the auth/wizard cards, so black never reads as flat. */
+.login-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.05), transparent 58%);
+  pointer-events: none;
 }
 
 /* The login screens have no top bar, so the switcher anchors to the corner. */
 .login-language {
   position: absolute;
   z-index: 20;
-  top: 1.25rem;
-  right: 1.25rem;
+  top: 1.5rem;
+  right: 1.5rem;
+  transition: opacity 320ms ease-out;
 }
 
-.background-paths {
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 35%);
-  isolation: isolate;
+.login-language.is-launching {
+  opacity: 0;
 }
 
-.vignette {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at center, transparent 38%, rgba(0, 0, 0, 0.56) 100%);
+/* Stripped-back switcher for this page: just EN / ES, no pill, no globe. */
+:host ::ng-deep .login-language .nt-segmented {
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 
-.vignette::before {
-  content: '';
-  position: absolute;
-  inset: -10%;
-  background:
-    linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.05) 48%, transparent 72%);
-  mix-blend-mode: screen;
-  opacity: 0.35;
-  animation: light-sweep 16s linear infinite;
+:host ::ng-deep .login-language .nt-segmented-icon {
+  display: none;
 }
 
-.path-layer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  will-change: transform, opacity;
+:host ::ng-deep .login-language .nt-segmented-option {
+  background: transparent;
+  padding: 0.25rem 0.15rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
 }
 
-.path-layer-top {
-  opacity: 0.5;
-  animation: layer-drift-top 26s ease-in-out infinite alternate;
+:host ::ng-deep .login-language .nt-segmented-option:hover,
+:host ::ng-deep .login-language .nt-segmented-option-active {
+  background: transparent;
+  color: #fff;
 }
 
-.path-layer-bottom {
-  opacity: 0.32;
-  animation: layer-drift-bottom 32s ease-in-out infinite alternate;
+/* ------------------------------------------------------------------ */
+/* Welcome screen — a black plate punched into the exchange board.     */
+/* ------------------------------------------------------------------ */
+.hero {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
 }
 
-.path-group {
-  transform-origin: center;
-  will-change: transform, opacity;
+.hero-panel {
+  max-width: min(48rem, 92vw);
+  background: #000;
+  padding: clamp(1.4rem, 2.4vw, 1.9rem) clamp(1.25rem, 2.8vw, 2.5rem) clamp(1.6rem, 2.6vw, 2.1rem);
+  text-align: center;
+  /* Reads as a plate cut out of the board — hard edge, barely feathered. */
+  box-shadow: 0 0 22px 10px #000;
+  animation: panel-in 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
-.path-group-primary {
-  animation: group-shift-a 24s ease-in-out infinite alternate;
+.hero-clock {
+  color: #fff;
+  font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
 }
 
-.path-group-secondary {
-  animation: group-shift-b 28s ease-in-out infinite alternate;
+.hero-date {
+  margin-top: 0.55rem;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  text-transform: uppercase;
 }
 
-.path-group-tertiary {
-  animation: group-shift-c 23s ease-in-out infinite alternate;
+.hero-brand {
+  margin-top: clamp(1.1rem, 2.2vw, 1.5rem);
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.64rem;
+  font-weight: 400;
+  letter-spacing: 0.58em;
+  text-indent: 0.58em;
+  text-transform: uppercase;
 }
 
-.path-group-quaternary {
-  animation: group-shift-d 27s ease-in-out infinite alternate;
+.hero-title {
+  margin-top: clamp(0.9rem, 2vw, 1.35rem);
+  color: #fff;
+  /* Capped so both languages keep the headline on the two lines it is written in. */
+  font-size: clamp(1.85rem, 4.2vw, 2.85rem);
+  /* Grotesque, set medium rather than black — presence without weight. */
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
 }
 
-.flow-line {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.26);
-  stroke-width: 1.4;
-  stroke-linecap: round;
-  stroke-dasharray: 18 14;
-  stroke-dashoffset: 0;
-  animation: dash-flow 26s linear infinite;
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: clamp(1.3rem, 2.6vw, 1.9rem);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 2px;
+  background: transparent;
+  padding: 0.8rem 1.7rem;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
 
-.soft-line {
-  stroke: rgba(255, 255, 255, 0.13);
-  stroke-width: 1.1;
+.hero-cta:hover:not(:disabled) {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
 }
 
-.faint-line {
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 1;
-  stroke-dasharray: 12 16;
+.hero-cta:disabled {
+  cursor: default;
 }
 
-@keyframes layer-drift-top {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1.02);
-    opacity: 0.82;
-  }
-
-  100% {
-    transform: translate3d(1.5rem, -1rem, 0) scale(1.05);
-    opacity: 0.96;
-  }
+.hero-cta-arrow {
+  transition: transform 180ms ease;
 }
 
-@keyframes layer-drift-bottom {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1.02);
-    opacity: 0.72;
-  }
-
-  100% {
-    transform: translate3d(-1.75rem, 1.35rem, 0) scale(1.08);
-    opacity: 0.88;
-  }
+.hero-cta:hover:not(:disabled) .hero-cta-arrow {
+  transform: translateX(4px);
 }
 
-@keyframes group-shift-a {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  100% {
-    transform: translate3d(1rem, -0.6rem, 0);
-  }
+/* The plate dissolves as the quotes behind it are blown out of frame. */
+.hero-panel.is-launching {
+  animation: panel-out 560ms cubic-bezier(0.4, 0, 0.9, 0.4) forwards;
 }
 
-@keyframes group-shift-b {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  100% {
-    transform: translate3d(-1.25rem, 0.8rem, 0);
-  }
+/* Everything after the blast arrives on clean black. */
+.screen-enter {
+  animation: screen-in 520ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
-@keyframes group-shift-c {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  100% {
-    transform: translate3d(0.8rem, 1rem, 0);
-  }
-}
-
-@keyframes group-shift-d {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  100% {
-    transform: translate3d(-0.9rem, -0.8rem, 0);
-  }
-}
-
-@keyframes dash-flow {
+@keyframes panel-in {
   from {
-    stroke-dashoffset: 0;
+    opacity: 0;
+    transform: scale(0.985);
   }
 
   to {
-    stroke-dashoffset: -220;
+    opacity: 1;
+    transform: none;
   }
 }
 
-@keyframes light-sweep {
+@keyframes panel-out {
   0% {
-    transform: translate3d(-12%, -4%, 0) rotate(0deg);
-    opacity: 0;
-  }
-
-  20% {
-    opacity: 0.22;
-  }
-
-  50% {
-    transform: translate3d(4%, 2%, 0) rotate(2deg);
-    opacity: 0.35;
-  }
-
-  80% {
-    opacity: 0.18;
+    opacity: 1;
+    transform: scale(1);
   }
 
   100% {
-    transform: translate3d(16%, 6%, 0) rotate(4deg);
     opacity: 0;
+    transform: scale(1.07);
   }
 }
 
-@media (max-width: 640px) {
-  .flow-line {
-    stroke-width: 1.35;
-    stroke-dasharray: 14 12;
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
 
-  .soft-line,
-  .faint-line {
-    stroke-width: 1;
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .path-layer,
-  .path-group,
-  .flow-line,
-  .vignette::before {
-    animation: none !important;
+  .hero-panel,
+  .screen-enter {
+    animation: none;
+  }
+
+  .hero-panel.is-launching {
+    animation: none;
+    opacity: 0;
+    transition: opacity 400ms ease-out;
   }
 }

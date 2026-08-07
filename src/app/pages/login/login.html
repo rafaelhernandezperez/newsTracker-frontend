@@ -1,65 +1,31 @@
-<main class="login-shell min-h-screen overflow-hidden bg-[#050505] text-stone-100">
-  <div class="background-paths pointer-events-none absolute inset-0 overflow-hidden">
-    <svg class="path-layer path-layer-top" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
-      <g class="path-group path-group-primary">
-        <path class="flow-line" d="M-140 120 C 120 170, 360 230, 700 285 S 1180 400, 1540 520" />
-        <path class="flow-line" d="M-160 160 C 110 205, 345 255, 675 315 S 1160 430, 1520 560" />
-        <path class="flow-line" d="M-180 200 C 90 240, 330 290, 650 345 S 1130 470, 1490 600" />
-        <path class="flow-line" d="M-200 240 C 70 275, 300 325, 620 380 S 1090 520, 1450 640" />
-        <path class="flow-line" d="M-220 280 C 50 315, 280 365, 600 420 S 1060 560, 1420 680" />
-        <path class="flow-line" d="M-240 320 C 40 350, 260 400, 575 455 S 1020 610, 1390 730" />
-      </g>
-      <g class="path-group path-group-secondary">
-        <path class="flow-line faint-line" d="M20 210 C 250 250, 470 300, 760 350 S 1180 455, 1470 595" />
-        <path class="flow-line faint-line" d="M0 250 C 220 290, 445 335, 730 390 S 1140 500, 1440 635" />
-        <path class="flow-line faint-line" d="M-20 295 C 205 330, 420 375, 700 430 S 1100 555, 1410 675" />
-      </g>
-    </svg>
+<main class="login-shell min-h-screen overflow-hidden bg-black text-stone-100">
+  @if (screen() === 'welcome') {
+    <app-ticker-board />
+  }
 
-    <svg class="path-layer path-layer-bottom" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
-      <g class="path-group path-group-tertiary">
-        <path class="flow-line soft-line" d="M-220 360 C 40 420, 210 560, 360 760 S 620 1100, 820 1360" />
-        <path class="flow-line soft-line" d="M-180 330 C 70 395, 235 525, 390 725 S 660 1050, 860 1310" />
-        <path class="flow-line soft-line" d="M-140 300 C 95 370, 260 495, 420 690 S 700 1000, 900 1270" />
-        <path class="flow-line soft-line" d="M-100 270 C 125 345, 285 470, 445 655 S 735 955, 935 1230" />
-        <path class="flow-line soft-line" d="M-60 245 C 155 320, 315 440, 475 625 S 770 915, 970 1200" />
-        <path class="flow-line soft-line" d="M-20 225 C 185 295, 345 410, 510 600 S 810 885, 1010 1170" />
-      </g>
-      <g class="path-group path-group-quaternary">
-        <path class="flow-line faint-line" d="M40 285 C 240 355, 390 465, 555 650 S 860 905, 1080 1190" />
-        <path class="flow-line faint-line" d="M85 255 C 275 325, 425 435, 595 620 S 900 875, 1120 1155" />
-        <path class="flow-line faint-line" d="M130 230 C 315 300, 465 405, 635 590 S 940 845, 1160 1125" />
-      </g>
-    </svg>
-
-    <div class="vignette"></div>
-  </div>
-
-  <app-language-toggle class="login-language" />
+  <app-language-toggle class="login-language" [class.is-launching]="launching()" />
 
   @if (screen() === 'welcome') {
-    <section class="relative flex min-h-screen items-center justify-center px-6 py-12 sm:px-10">
-      <div class="relative z-10 flex w-full max-w-5xl flex-col items-center text-center">
-        <p class="text-xs font-medium uppercase tracking-[0.45em] text-white/70">NewsTracker</p>
-        <h1 class="mt-6 text-5xl font-semibold tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
-          {{ i18n.t('login.heroLine1') }}<br class="hidden sm:block" /> {{ i18n.t('login.heroLine2') }}
-        </h1>
-        <p class="mt-6 max-w-xl text-base leading-7 text-white/70">
-          {{ i18n.t('login.heroSubtitle') }}
-        </p>
+    <section class="hero">
+      <!-- Solid black plate: the quotes run right up to the type and stop,
+           so the headline stays readable over the noise. -->
+      <div class="hero-panel" [class.is-launching]="launching()">
+        <p class="hero-clock">{{ clock() }}</p>
+        <p class="hero-date">{{ today() }}</p>
+        <p class="hero-brand">NewsTracker</p>
 
-        <button
-          type="button"
-          (click)="startFlow()"
-          class="mt-10 inline-flex items-center gap-3 rounded-full border border-white/15 bg-black/60 px-7 py-3 text-base font-semibold text-white shadow-[0_18px_60px_rgba(0,0,0,0.45)] transition hover:border-white/25 hover:bg-black/80"
-        >
+        <h1 class="hero-title">
+          {{ i18n.t('login.heroLine1') }}<br />{{ i18n.t('login.heroLine2') }}
+        </h1>
+
+        <button type="button" class="hero-cta" [disabled]="launching()" (click)="startFlow()">
           {{ i18n.t('login.getStarted') }}
-          <span aria-hidden="true" class="text-lg leading-none">→</span>
+          <span class="hero-cta-arrow" aria-hidden="true">→</span>
         </button>
       </div>
     </section>
   } @else if (screen() === 'auth') {
-    <section class="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
+    <section class="screen-enter relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
       <div
         class="relative z-10 w-full max-w-[25rem] rounded-[2rem] border border-white/12 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-8"
       >
@@ -208,7 +174,7 @@
       </div>
     </section>
   } @else {
-    <section class="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
+    <section class="screen-enter relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
       <div
         class="relative z-10 w-full max-w-[26rem] rounded-[2rem] border border-white/12 bg-white/[0.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-8"
       >

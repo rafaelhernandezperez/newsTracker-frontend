@@ -10,6 +10,9 @@
 :root {
   color-scheme: dark;
 
+  /* One neutral grotesque for everything — type is never the decoration. */
+  --nt-font-sans: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
+
   --nt-bg: #0b0b0c;
 
   --nt-surface: rgba(255, 255, 255, 0.04);

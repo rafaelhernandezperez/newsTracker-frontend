@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { COMPANIES } from '../../core/data/companies.data';
@@ -11,6 +11,7 @@ import { WatchlistService } from '../../core/services/watchlist.service';
 import { PushService } from '../../core/services/push.service';
 import { AlertPrefsService } from '../../core/services/alert-prefs.service';
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
+import { TickerBoardComponent } from '../../shared/components/ticker-board/ticker-board';
 
 type Screen = 'welcome' | 'auth' | 'wizard';
 type StepKey = 'tickers' | 'alerts';
@@ -29,14 +30,17 @@ type AlertPreference = {
   enabled: boolean;
 };
 
+/** Long enough for the blast to clear the frame, short enough to feel snappy. */
+const LAUNCH_MS = 1000;
+
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, LanguageToggleComponent],
+  imports: [CommonModule, FormsModule, LanguageToggleComponent, TickerBoardComponent],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
-export class Login {
+export class Login implements OnDestroy {
   private readonly router = inject(Router);
   private readonly preferences = inject(UserPreferencesService);
   private readonly auth = inject(AuthService);
@@ -56,6 +60,37 @@ export class Login {
   protected readonly screen = signal<Screen>('welcome');
   protected readonly currentStep = signal(0);
   protected readonly authMode = signal<AuthMode>('login');
+
+  /** The board is only in the DOM on the welcome screen. */
+  private readonly board = viewChild(TickerBoardComponent);
+
+  /** True while the quotes are being blown off the screen. */
+  protected readonly launching = signal(false);
+  private launchTimer?: ReturnType<typeof setTimeout>;
+
+  // A live clock, the way an exchange screen always carries one.
+  private readonly now = signal(new Date());
+  private readonly clockTimer = setInterval(() => this.now.set(new Date()), 1000);
+
+  protected readonly clock = computed(() =>
+    new Intl.DateTimeFormat(this.i18n.locale(), {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).format(this.now()),
+  );
+
+  protected readonly today = computed(() =>
+    new Intl.DateTimeFormat(this.i18n.locale(), {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+      .format(this.now())
+      .toUpperCase(),
+  );
 
   protected readonly steps: Step[] = [
     {
@@ -90,9 +125,36 @@ export class Login {
 
   protected readonly isLastStep = computed(() => this.currentStep() === this.steps.length - 1);
 
+  /**
+   * Leaving the welcome screen: detonate the board first. The market clutter
+   * is thrown off the screen and what is left — the auth card on black — is
+   * the promise the product makes.
+   */
   protected startFlow(): void {
+    if (this.launching()) {
+      return;
+    }
+
+    const board = this.board();
+    if (!board) {
+      this.enterAuth();
+      return;
+    }
+
+    this.launching.set(true);
+    board.blast();
+    this.launchTimer = setTimeout(() => this.enterAuth(), LAUNCH_MS);
+  }
+
+  private enterAuth(): void {
     this.authMode.set('login');
     this.screen.set('auth');
+    this.launching.set(false);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.clockTimer);
+    clearTimeout(this.launchTimer);
   }
 
   protected enterWizard(): void {
