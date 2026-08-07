@@ -64,6 +64,14 @@ import { CompanySelectorModalComponent } from '../../shared/components/company-s
 import { CurrencyToggleComponent } from '../../shared/components/currency-toggle/currency-toggle';
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 
+/**
+ * The chart can't read CSS variables, so the two market colours are mirrored
+ * here as raw channels. Keep them in step with --nt-quote-up / --nt-quote-down
+ * in styles.css: the line, its markers and the watchlist must agree.
+ */
+const QUOTE_UP = '53, 224, 141';
+const QUOTE_DOWN = '255, 87, 87';
+
 type NavItem = {
   labelKey: TranslationKey;
   link: string | any[];
@@ -606,30 +614,37 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return;
     }
 
+    // Charted in the same hairlines and greys as the rest of the page, so the
+    // plot reads as part of the grid rather than an embedded widget.
     this.chart = createChart(container, {
       autoSize: true,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: 'rgba(231, 229, 228, 0.55)',
+        textColor: 'rgba(255, 255, 255, 0.32)',
+        fontSize: 10,
         fontFamily: getComputedStyle(container).fontFamily,
         attributionLogo: false,
       },
       grid: {
         vertLines: { visible: false },
-        horzLines: { color: 'rgba(255, 255, 255, 0.06)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.07)' },
       },
       rightPriceScale: { borderVisible: false },
       timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
-      crosshair: { mode: 0 },
+      crosshair: {
+        mode: 0,
+        vertLine: { color: 'rgba(255, 255, 255, 0.35)', width: 1, style: 0, labelVisible: false },
+        horzLine: { color: 'rgba(255, 255, 255, 0.35)', width: 1, style: 0 },
+      },
     });
 
     this.series = this.chart.addSeries(AreaSeries, {
-      lineColor: '#21c996',
-      topColor: 'rgba(33, 201, 150, 0.28)',
-      bottomColor: 'rgba(33, 201, 150, 0.02)',
+      ...this.seriesColors(QUOTE_UP),
       lineWidth: 2,
       priceLineVisible: false,
       crosshairMarkerVisible: true,
+      crosshairMarkerBorderColor: '#000',
+      crosshairMarkerBackgroundColor: '#fff',
     });
 
     this.markersPlugin = createSeriesMarkers(this.series, []);
@@ -687,9 +702,24 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         return acc;
       }, []);
 
+    // Green when the range closed above where it opened, red when it didn't —
+    // the line answers the question before the axis does.
+    const first = seriesData[0]?.value ?? 0;
+    const last = seriesData[seriesData.length - 1]?.value ?? 0;
+    this.series.applyOptions(this.seriesColors(last < first ? QUOTE_DOWN : QUOTE_UP));
+
     this.series.setData(seriesData);
     this.markersPlugin?.setMarkers(this.buildNewsMarkers(seriesData));
     this.chart?.timeScale().fitContent();
+  }
+
+  /** Line plus its fade, from one colour. */
+  private seriesColors(rgb: string) {
+    return {
+      lineColor: `rgb(${rgb})`,
+      topColor: `rgba(${rgb}, 0.22)`,
+      bottomColor: `rgba(${rgb}, 0)`,
+    };
   }
 
   /**
@@ -797,14 +827,14 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   private sentimentColor(sentiment: 'positive' | 'neutral' | 'negative'): string {
     if (sentiment === 'positive') {
-      return '#21c996';
+      return `rgb(${QUOTE_UP})`;
     }
 
     if (sentiment === 'negative') {
-      return '#f1675c';
+      return `rgb(${QUOTE_DOWN})`;
     }
 
-    return '#9ca3af';
+    return 'rgba(255, 255, 255, 0.55)';
   }
 
   private timeToKey(time: Time): string {
