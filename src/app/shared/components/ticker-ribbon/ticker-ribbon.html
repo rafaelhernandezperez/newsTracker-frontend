@@ -1,0 +1,19 @@
+<div class="track">
+  @for (pass of passes; track pass) {
+    <div class="run">
+      @for (quote of quotes(); track quote.id) {
+        <span
+          class="quote"
+          [class.is-up]="quote.trend === 'up'"
+          [class.is-down]="quote.trend === 'down'"
+          [class.is-flat]="quote.trend === 'flat'"
+          [class.is-flash]="quote.flash"
+        >
+          <span class="quote-symbol">{{ quote.symbol }}</span>
+          <span class="quote-price">{{ quote.priceText }}</span>
+          <span class="quote-change">{{ quote.changeText }}</span>
+        </span>
+      }
+    </div>
+  }
+</div>

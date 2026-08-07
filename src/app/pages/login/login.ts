@@ -12,6 +12,7 @@ import { PushService } from '../../core/services/push.service';
 import { AlertPrefsService } from '../../core/services/alert-prefs.service';
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 import { TickerBoardComponent } from '../../shared/components/ticker-board/ticker-board';
+import { TickerRibbonComponent } from '../../shared/components/ticker-ribbon/ticker-ribbon';
 
 type Screen = 'welcome' | 'auth' | 'wizard';
 type StepKey = 'tickers' | 'alerts';
@@ -19,8 +20,8 @@ type AuthMode = 'login' | 'register';
 
 type Step = {
   key: StepKey;
-  eyebrowKey: TranslationKey;
-  titleKey: TranslationKey;
+  /** Short label for the numbered rail. */
+  labelKey: TranslationKey;
   descriptionKey: TranslationKey;
 };
 
@@ -36,7 +37,13 @@ const LAUNCH_MS = 1000;
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, LanguageToggleComponent, TickerBoardComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LanguageToggleComponent,
+    TickerBoardComponent,
+    TickerRibbonComponent,
+  ],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
@@ -95,23 +102,21 @@ export class Login implements OnDestroy {
   protected readonly steps: Step[] = [
     {
       key: 'tickers',
-      eyebrowKey: 'wizard.step1Eyebrow',
-      titleKey: 'wizard.tickersTitle',
+      labelKey: 'wizard.tickersLabel',
       descriptionKey: 'wizard.tickersDescription',
     },
     {
       key: 'alerts',
-      eyebrowKey: 'wizard.step2Eyebrow',
-      titleKey: 'wizard.alertsTitle',
+      labelKey: 'wizard.alertsLabel',
       descriptionKey: 'wizard.alertsDescription',
     },
   ];
 
-  // Keep the selectable tickers aligned with the company catalogue so every
-  // choice has matching metadata and resolves to real backend data.
-  protected readonly tickerOptions = COMPANIES.map((company) => company.symbol);
+  // The catalogue itself, so each row can show the name behind the symbol and
+  // every choice resolves to real backend data.
+  protected readonly companies = COMPANIES;
 
-  protected readonly selectedTickers = new Set<string>(['NVDA', 'BBVA']);
+  protected readonly selectedTickers = signal<ReadonlySet<string>>(new Set(['NVDA', 'BBVA']));
 
   // Ids match the backend AlertPrefs fields; all on by default, mirroring the
   // server-side default for users who never save preferences.
@@ -124,6 +129,15 @@ export class Login implements OnDestroy {
   protected readonly activeStep = computed<Step>(() => this.steps[this.currentStep()]);
 
   protected readonly isLastStep = computed(() => this.currentStep() === this.steps.length - 1);
+
+  /** Bottom-anchored tallies, so each step closes on a fact. */
+  protected readonly stepTally = computed(() =>
+    this.activeStep().key === 'tickers'
+      ? this.i18n.t('wizard.selectedCount', { count: this.selectedTickers().size })
+      : this.i18n.t('wizard.enabledCount', {
+          count: this.alertPreferences().filter((preference) => preference.enabled).length,
+        }),
+  );
 
   /**
    * Leaving the welcome screen: detonate the board first. The market clutter
@@ -233,7 +247,7 @@ export class Login implements OnDestroy {
 
   protected async continue(): Promise<void> {
     if (this.isLastStep()) {
-      const companies = [...this.selectedTickers].map(
+      const companies = [...this.selectedTickers()].map(
         (symbol) => COMPANIES.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
       );
       this.preferences.setCompanies(companies);
@@ -286,12 +300,24 @@ export class Login implements OnDestroy {
     }
   }
 
+  protected goToStep(index: number): void {
+    this.currentStep.set(index);
+  }
+
   protected toggleTicker(option: string): void {
-    this.toggleSelection(this.selectedTickers, option);
+    this.selectedTickers.update((selection) => {
+      const next = new Set(selection);
+
+      if (!next.delete(option)) {
+        next.add(option);
+      }
+
+      return next;
+    });
   }
 
   protected isTickerSelected(option: string): boolean {
-    return this.selectedTickers.has(option);
+    return this.selectedTickers().has(option);
   }
 
   protected toggleAlert(id: string): void {
@@ -304,12 +330,4 @@ export class Login implements OnDestroy {
     );
   }
 
-  private toggleSelection(selection: Set<string>, value: string): void {
-    if (selection.has(value)) {
-      selection.delete(value);
-      return;
-    }
-
-    selection.add(value);
-  }
 }

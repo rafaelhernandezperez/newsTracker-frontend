@@ -80,18 +80,18 @@
 
 /* The whole line carries the colour of the move, symbol included. */
 .is-up {
-  color: #35e08d;
+  color: var(--nt-quote-up);
   text-shadow: 0 0 12px rgba(53, 224, 141, 0.32);
 }
 
 .is-down {
-  color: #ff5757;
+  color: var(--nt-quote-down);
   text-shadow: 0 0 12px rgba(255, 87, 87, 0.3);
 }
 
 /* White is reserved for a quote that printed unchanged. */
 .is-flat {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--nt-quote-flat);
   text-shadow: 0 0 12px rgba(255, 255, 255, 0.22);
 }
 

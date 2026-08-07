@@ -8,15 +8,6 @@
   font-family: var(--nt-font-sans);
 }
 
-/* Faint lift behind the auth/wizard cards, so black never reads as flat. */
-.login-shell::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.05), transparent 58%);
-  pointer-events: none;
-}
-
 /* The login screens have no top bar, so the switcher anchors to the corner. */
 .login-language {
   position: absolute;
@@ -163,6 +154,372 @@
   animation: panel-out 560ms cubic-bezier(0.4, 0, 0.9, 0.4) forwards;
 }
 
+/* ------------------------------------------------------------------ */
+/* Auth — the calm after the blast.                                    */
+/*                                                                     */
+/* The landing is noise; this is the same system with the volume off:  */
+/* a terminal grid ruled by hairlines, everything locked to it, and    */
+/* one quote line still running along the bottom. The empty third      */
+/* column is not leftover space — it is bounded by a rule, so the      */
+/* silence is part of the composition.                                 */
+/* ------------------------------------------------------------------ */
+.auth {
+  --auth-gutter: clamp(1.25rem, 3.4vw, 2.75rem);
+  --auth-rule: rgba(255, 255, 255, 0.14);
+
+  position: relative;
+  z-index: 10;
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  flex-direction: column;
+  /* Room for the fixed ribbon. */
+  padding-bottom: 4.4rem;
+}
+
+.auth-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem var(--auth-gutter);
+}
+
+.auth-back {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  padding: 0.2rem 0.35rem 0.2rem 0;
+  color: #fff;
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.auth-back:hover {
+  opacity: 0.65;
+  transform: translateX(-3px);
+}
+
+.auth-wordmark {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  text-transform: uppercase;
+}
+
+.auth-body {
+  display: grid;
+  grid-template-columns: minmax(12rem, 19rem) minmax(0, 30rem) minmax(0, 1fr);
+  flex: 1;
+  border-top: 1px solid var(--auth-rule);
+}
+
+.auth-rail {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(2rem, 5vh, 3.25rem) var(--auth-gutter) clamp(1.5rem, 4vh, 2.5rem);
+}
+
+.auth-eyebrow {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+/* The mode switch is the heading: whichever one is white is the page. */
+.auth-modes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+}
+
+.auth-mode {
+  border: 0;
+  background: transparent;
+  padding: 0.1rem 0;
+  color: rgba(255, 255, 255, 0.26);
+  font: inherit;
+  /* Capped so the longest label ("REGISTRARSE") clears the rule. */
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.auth-mode:hover {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.auth-mode.is-active {
+  color: #fff;
+  cursor: default;
+}
+
+/* Anchors the rail to the bottom of the grid and keeps the exchange
+   clock from the landing page running, quietly. */
+.auth-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 2.5rem;
+}
+
+.auth-clock {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+
+.auth-date {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.58rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.auth-column {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--auth-rule);
+  border-left: 1px solid var(--auth-rule);
+  padding: clamp(2rem, 5vh, 3.25rem) clamp(1.5rem, 3vw, 2.5rem)
+    clamp(1.5rem, 4vh, 2.5rem);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-field {
+  display: block;
+}
+
+.auth-field + .auth-field {
+  margin-top: clamp(1.4rem, 3.4vh, 2rem);
+}
+
+.auth-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.58rem;
+  font-weight: 400;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+/* Ruled fields, not boxes: the line is the only chrome the form needs. */
+.auth-input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.35rem 0 0.55rem;
+  color: #fff;
+  font: inherit;
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+  transition: border-color 180ms ease;
+}
+
+.auth-input:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+}
+
+.auth-input:focus {
+  border-bottom-color: #fff;
+}
+
+.auth-error {
+  margin-top: 1.4rem;
+  color: var(--nt-neg);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.auth-submit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: clamp(2rem, 5vh, 3rem);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 0;
+  background: transparent;
+  padding: 1.05rem 1.25rem;
+  color: #fff;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.auth-submit:hover:not(:disabled) {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+}
+
+.auth-submit-arrow {
+  transition: transform 180ms ease;
+}
+
+.auth-submit:hover:not(:disabled) .auth-submit-arrow {
+  transform: translateX(4px);
+}
+
+.auth-submit:disabled {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.45);
+  cursor: default;
+}
+
+/* The other way in — set as a footnote, on the clock's baseline. */
+.auth-alt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding-top: 2.5rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.auth-alt-action {
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  background: transparent;
+  padding: 0 0 0.15rem;
+  color: #fff;
+  font: inherit;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 180ms ease;
+}
+
+.auth-alt-action:hover {
+  border-bottom-color: #fff;
+}
+
+/* ------------------------------------------------------------------ */
+/* Wizard — the same grid, one step further in. The numbered rail is    */
+/* both the heading and the progress: no dots, no "step 1 of 2".        */
+/* ------------------------------------------------------------------ */
+.wizard-step {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
+.wizard-step-index {
+  font-size: 0.55em;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  opacity: 0.55;
+}
+
+.wizard-lede {
+  margin-bottom: clamp(1.5rem, 4vh, 2.25rem);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+/* Ruled rows instead of pills or switches: one line per choice, and a
+   single square that fills when it is on. Same grammar for both steps. */
+.option-list {
+  list-style: none;
+  border-top: 1px solid var(--auth-rule);
+}
+
+.option {
+  display: grid;
+  grid-template-columns: 4.4em 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--auth-rule);
+  background: transparent;
+  padding: 0.95rem 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option-wide {
+  grid-template-columns: 1fr auto;
+}
+
+.option-symbol {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+}
+
+.option-name {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 180ms ease;
+}
+
+.option-mark {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.option:hover .option-symbol {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.option:hover .option-mark {
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.option.is-on .option-symbol {
+  color: #fff;
+}
+
+.option.is-on .option-name {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.option.is-on .option-mark {
+  border-color: #fff;
+  background: #fff;
+}
+
 /* Everything after the blast arrives on clean black. */
 .screen-enter {
   animation: screen-in 520ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
@@ -201,6 +558,40 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Narrow: the three-column grid collapses to stacked bands, still ruled —
+   the structure survives, it just runs vertically. */
+@media (max-width: 900px) {
+  .auth-body {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-rail {
+    padding-bottom: clamp(1.5rem, 3vh, 2rem);
+  }
+
+  .auth-meta {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.85rem;
+    padding-top: 1.5rem;
+  }
+
+  .auth-column {
+    border-right: 0;
+    border-left: 0;
+    border-top: 1px solid var(--auth-rule);
+    padding: clamp(1.75rem, 4vh, 2.5rem) var(--auth-gutter);
+  }
+
+  .auth-form {
+    max-width: 30rem;
+  }
+
+  .auth-void {
+    display: none;
   }
 }
 

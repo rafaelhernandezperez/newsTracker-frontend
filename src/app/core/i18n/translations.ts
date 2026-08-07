@@ -161,6 +161,12 @@ const EN = {
   'auth.generic': 'The operation could not be completed. Please try again.',
 
   // Onboarding wizard
+  'wizard.eyebrow': 'Setup',
+  // Short labels for the numbered step rail; the titles below are the long form.
+  'wizard.tickersLabel': 'Tickers',
+  'wizard.alertsLabel': 'Alerts',
+  'wizard.selectedCount': '{count} selected',
+  'wizard.enabledCount': '{count} enabled',
   'wizard.step1Eyebrow': 'Step 1 of 2',
   'wizard.step2Eyebrow': 'Step 2 of 2',
   'wizard.tickersTitle': 'Pick your tickers',
@@ -329,6 +335,12 @@ const ES: Record<TranslationKey, string> = {
   'auth.generic': 'No se pudo completar la operación. Inténtalo de nuevo.',
 
   // Onboarding wizard
+  'wizard.eyebrow': 'Configuración',
+  'wizard.tickersLabel': 'Valores',
+  'wizard.alertsLabel': 'Avisos',
+  'wizard.selectedCount': '{count} seleccionados',
+  'wizard.enabledCount': '{count} activados',
+
   'wizard.step1Eyebrow': 'Paso 1 de 2',
   'wizard.step2Eyebrow': 'Paso 2 de 2',
   'wizard.tickersTitle': 'Elige tus valores',

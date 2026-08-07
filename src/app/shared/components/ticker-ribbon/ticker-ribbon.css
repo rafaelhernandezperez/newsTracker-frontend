@@ -1,0 +1,102 @@
+/* ------------------------------------------------------------------ */
+/* One quote line running along the bottom of the screen, the way an   */
+/* exchange ribbon does. Decorative: aria-hidden, never interactive.   */
+/* ------------------------------------------------------------------ */
+:host {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 5;
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: #000;
+  pointer-events: none;
+  font-family: var(--nt-font-sans);
+  font-size: 1.05rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  animation: ribbon-scroll 72s linear infinite;
+  will-change: transform;
+}
+
+.run {
+  display: flex;
+}
+
+.quote {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 1rem 1.6rem;
+  white-space: nowrap;
+  /* Instant on the flash, slow decay off. */
+  transition: background-color 700ms ease-out;
+}
+
+.quote-symbol {
+  opacity: 0.88;
+}
+
+.quote-change {
+  font-size: 0.86em;
+  opacity: 0.8;
+}
+
+.is-up {
+  color: var(--nt-quote-up);
+}
+
+.is-down {
+  color: var(--nt-quote-down);
+}
+
+.is-flat {
+  color: var(--nt-quote-flat);
+}
+
+.quote.is-flash {
+  transition-duration: 0ms;
+}
+
+.quote.is-flash.is-up {
+  background-color: rgba(53, 224, 141, 0.12);
+}
+
+.quote.is-flash.is-down {
+  background-color: rgba(255, 87, 87, 0.12);
+}
+
+.quote.is-flash.is-flat {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes ribbon-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (max-width: 640px) {
+  :host {
+    font-size: 0.88rem;
+  }
+
+  .quote {
+    padding: 0.8rem 1.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    animation: none;
+  }
+}

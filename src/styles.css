@@ -34,6 +34,13 @@
   --nt-pos: #5fd3a3;
   --nt-neg: #ff8f8f;
 
+  /* The fake exchange feed: the landing board and the ribbon share these,
+     so a quote is coloured identically wherever it appears. White is
+     reserved for a print that did not move. */
+  --nt-quote-up: #35e08d;
+  --nt-quote-down: #ff5757;
+  --nt-quote-flat: rgba(255, 255, 255, 0.9);
+
   --nt-radius-lg: 1.25rem;
   --nt-radius-md: 1rem;
   --nt-radius-sm: 0.85rem;
