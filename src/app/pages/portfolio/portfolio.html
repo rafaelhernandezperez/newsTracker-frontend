@@ -1,126 +1,117 @@
-<main class="portfolio-shell min-h-screen bg-[#0c0c0c] text-stone-100">
-  <div class="portfolio-background" aria-hidden="true">
-    <div class="background-glow background-glow-left"></div>
-    <div class="background-glow background-glow-right"></div>
-    <div class="background-grid"></div>
-  </div>
+<main class="terminal">
+  <header class="terminal-bar">
+    <span></span>
 
-  <div class="relative z-10 mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-    <header class="topbar">
-      <a routerLink="/portfolio" class="brand-mark">NewsTracker</a>
+    <a routerLink="/portfolio" class="terminal-wordmark">NewsTracker</a>
 
-      <nav class="topnav" [attr.aria-label]="i18n.t('nav.primaryAria')">
-        @for (item of navItems; track item.labelKey) {
-          <a routerLink="/portfolio" class="topnav-link" [class.topnav-link-active]="item.active">
-            {{ i18n.t(item.labelKey) }}
-          </a>
-        }
-        <button type="button" class="topnav-link logout-button" (click)="logout()">
-          {{ i18n.t('nav.logout') }}
+    <div class="terminal-controls">
+      <button type="button" class="terminal-action" (click)="logout()">
+        {{ i18n.t('nav.logout') }}
+      </button>
+      <app-language-toggle class="terminal-language" />
+    </div>
+  </header>
+
+  <div class="terminal-body">
+    <!-- Rail: what you follow, and where it is today. -->
+    <aside class="rail">
+      <div class="rail-head">
+        <p class="eyebrow">{{ i18n.t('watchlist.title') }}</p>
+        <button type="button" class="link-action" (click)="openModal()">
+          {{ i18n.t('watchlist.manage') }}
         </button>
-        <span class="topnav-divider" aria-hidden="true"></span>
-        <app-language-toggle />
-      </nav>
-    </header>
+      </div>
 
-    <div class="dashboard-frame">
-      <aside class="dashboard-sidebar">
-        <section class="sidebar-section">
-          <div class="section-heading">
-            <p>{{ i18n.t('watchlist.title') }}</p>
-            <button type="button" class="section-action" (click)="openModal()">
-              {{ i18n.t('watchlist.manage') }}
-            </button>
-          </div>
-
-          <div class="watchlist">
-            @if (isWatchlistLoading()) {
-              <p class="watchlist-empty">{{ i18n.t('watchlist.loading') }}</p>
-            } @else {
-            @for (row of watchlistRows; track row.company.symbol) {
-              <a class="watchlist-item" [routerLink]="['/portfolio', row.company.symbol]">
-                <div class="flex items-center gap-3">
-                  <span class="watchlist-dot" [class.watchlist-dot-bank]="row.company.sector === 'Banca'"></span>
-                  <div>
-                    <p class="watchlist-symbol">{{ row.company.symbol }}</p>
-                    <p class="watchlist-name">{{ row.company.name }}</p>
-                  </div>
-                </div>
+      @if (isWatchlistLoading()) {
+        <p class="rail-note">{{ i18n.t('watchlist.loading') }}</p>
+      } @else {
+        <ul class="rail-list">
+          @for (row of watchlistRows; track row.company.symbol) {
+            <li>
+              <a class="holding" [routerLink]="['/portfolio', row.company.symbol]">
+                <span class="holding-symbol">{{ row.company.symbol }}</span>
                 <span
-                  class="watchlist-change"
-                  [class.watchlist-change-negative]="row.changeDirection === 'negative'"
+                  class="holding-change"
+                  [class.is-up]="row.changeDirection === 'positive'"
+                  [class.is-down]="row.changeDirection === 'negative'"
+                  [class.is-flat]="row.changeDirection === 'neutral'"
                 >
                   {{ row.change }}
                 </span>
+                <span class="holding-name">{{ row.company.name }}</span>
               </a>
-            } @empty {
-              <p class="watchlist-empty">{{ i18n.t('watchlist.empty') }}</p>
-            }
-            }
-          </div>
-        </section>
+            </li>
+          } @empty {
+            <li><p class="rail-note">{{ i18n.t('watchlist.empty') }}</p></li>
+          }
+        </ul>
+      }
+    </aside>
 
-      </aside>
+    <!-- Index: one ranked line per company, no cards. -->
+    <section class="feed">
+      <div class="feed-head">
+        <h1 class="eyebrow">{{ i18n.t('dashboard.title') }}</h1>
+        @if (newsCards.length) {
+          <span class="feed-count" aria-hidden="true">{{ newsCards.length }}</span>
+        }
+      </div>
 
-      <section class="dashboard-main">
-        <div class="dashboard-intro">
-          <div>
-            <h1>{{ i18n.t('dashboard.title') }}</h1>
-          </div>
-        </div>
+      @if (isNewsLoading() && newsCards.length === 0) {
+        <p class="feed-note">{{ i18n.t('dashboard.newsLoading') }}</p>
+      } @else {
+        <ol class="feed-list">
+          @for (card of newsCards; track card.company.symbol; let index = $index) {
+            <li class="story" [class.is-empty]="card.empty">
+              <span class="story-index" aria-hidden="true">{{ index < 9 ? '0' : '' }}{{ index + 1 }}</span>
 
-        <section class="news-stack">
-          @if (isNewsLoading() && newsCards.length === 0) {
-            <div class="news-empty-state">
-              <p>{{ i18n.t('dashboard.newsLoading') }}</p>
-            </div>
-          } @else {
-          @for (card of newsCards; track card.company.symbol) {
-            <article class="news-card" [class.news-card-green]="card.accent === 'green'" [class.news-card-amber]="card.accent === 'amber'" [class.news-card-violet]="card.accent === 'violet'">
-              <div class="news-card-head">
-                <span class="news-badge">{{ card.company.symbol }}</span>
-                <div class="news-card-meta">
-                  <span class="news-card-dot"></span>
+              <div class="story-body">
+                <p class="story-meta">
+                  <span class="story-symbol">{{ card.company.symbol }}</span>
                   <span>{{ i18n.sector(card.company.sector) }}</span>
                   @if (card.publishedAt) {
-                    <span class="dot"></span>
-                    <span class="news-card-date">{{ card.publishedAt }}</span>
+                    <span class="story-date">{{ card.publishedAt }}</span>
                   }
-                </div>
-              </div>
+                </p>
 
-              @if (card.empty) {
-                <h2 class="news-card-empty-title">{{ i18n.t('dashboard.noRecentNews') }}</h2>
-                <p>{{ i18n.t('dashboard.noRecentNewsBody', { company: card.company.name }) }}</p>
-              } @else {
-                <h2>
-                  <a class="news-headline-link" [href]="card.link" target="_blank" rel="noopener noreferrer">
-                    {{ card.headline }}
-                  </a>
-                </h2>
-                @if (card.snippet) {
-                  <p>{{ card.snippet }}</p>
+                @if (card.empty) {
+                  <p class="story-headline story-headline-empty">
+                    {{ i18n.t('dashboard.noRecentNews') }}
+                  </p>
+                  <p class="story-snippet">
+                    {{ i18n.t('dashboard.noRecentNewsBody', { company: card.company.name }) }}
+                  </p>
+                } @else {
+                  <h2 class="story-headline">
+                    <a [href]="card.link" target="_blank" rel="noopener noreferrer">
+                      {{ card.headline }}
+                    </a>
+                  </h2>
+                  @if (card.snippet) {
+                    <p class="story-snippet">{{ card.snippet }}</p>
+                  }
                 }
-              }
 
-              <div class="news-card-actions">
-                <a class="news-card-link" [routerLink]="['/portfolio', card.company.symbol]">
-                  {{ i18n.t('dashboard.viewMore') }} →
+                <a class="link-action story-more" [routerLink]="['/portfolio', card.company.symbol]">
+                  {{ i18n.t('dashboard.viewMore') }}
+                  <span aria-hidden="true">&#8594;</span>
                 </a>
               </div>
-            </article>
+            </li>
           } @empty {
-            <div class="news-empty-state">
-              <p>{{ i18n.t('dashboard.noCompanies') }}</p>
-              <button type="button" class="news-card-link" (click)="openModal()">
-                {{ i18n.t('dashboard.addCompanies') }} →
-              </button>
-            </div>
+            <li class="story story-blank">
+              <div class="story-body">
+                <p class="feed-note">{{ i18n.t('dashboard.noCompanies') }}</p>
+                <button type="button" class="link-action" (click)="openModal()">
+                  {{ i18n.t('dashboard.addCompanies') }}
+                  <span aria-hidden="true">&#8594;</span>
+                </button>
+              </div>
+            </li>
           }
-          }
-        </section>
-      </section>
-    </div>
+        </ol>
+      }
+    </section>
   </div>
 
   @if (isModalOpen) {

@@ -6,6 +6,7 @@ import { COMPANIES } from '../../core/data/companies.data';
 import { TranslationKey } from '../../core/i18n/translations';
 import { AlertPrefs, UserPreferencesService } from '../../core/services/user-preferences.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ClockService } from '../../core/services/clock.service';
 import { LanguageService } from '../../core/services/language.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
 import { PushService } from '../../core/services/push.service';
@@ -76,28 +77,9 @@ export class Login implements OnDestroy {
   private launchTimer?: ReturnType<typeof setTimeout>;
 
   // A live clock, the way an exchange screen always carries one.
-  private readonly now = signal(new Date());
-  private readonly clockTimer = setInterval(() => this.now.set(new Date()), 1000);
-
-  protected readonly clock = computed(() =>
-    new Intl.DateTimeFormat(this.i18n.locale(), {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hourCycle: 'h23',
-    }).format(this.now()),
-  );
-
-  protected readonly today = computed(() =>
-    new Intl.DateTimeFormat(this.i18n.locale(), {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-      .format(this.now())
-      .toUpperCase(),
-  );
+  private readonly clockService = inject(ClockService);
+  protected readonly clock = this.clockService.time;
+  protected readonly today = this.clockService.date;
 
   protected readonly steps: Step[] = [
     {
@@ -167,7 +149,6 @@ export class Login implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    clearInterval(this.clockTimer);
     clearTimeout(this.launchTimer);
   }
 

@@ -1,283 +1,274 @@
+/* ------------------------------------------------------------------ */
+/* Manage watchlist — the dashboard's grid, lifted onto a sheet.       */
+/* Same ruled rows and square marks as the onboarding steps, so        */
+/* choosing a company is one gesture everywhere in the app.            */
+/* ------------------------------------------------------------------ */
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(5, 5, 5, 0.72);
-  backdrop-filter: blur(10px);
-}
-
-.modal {
-  width: min(920px, 100%);
-  max-height: 88vh;
-  overflow: auto;
-  scrollbar-width: none;
-  border: 1px solid var(--nt-border);
-  border-radius: var(--nt-radius-lg);
-  background: rgba(20, 20, 22, 0.96);
-  backdrop-filter: blur(var(--nt-blur));
-  padding: 1.5rem;
-  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.45);
-  color: var(--nt-text);
-}
-
-.modal::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.eyebrow {
-  margin: 0;
-  color: var(--nt-text-faint);
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.modal-header h2 {
-  margin: 0.7rem 0 0;
-  font-size: clamp(1.8rem, 3vw, 2.4rem);
-  line-height: 1.1;
-  letter-spacing: -0.05em;
-}
-
-.intro {
-  margin: 0.8rem 0 0;
-  max-width: 52ch;
-  color: var(--nt-text-muted);
-  line-height: 1.6;
-}
-
-.close-btn {
-  border: 1px solid var(--nt-border);
-  background: var(--nt-surface);
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  font-size: 24px;
-  color: var(--nt-text);
-  cursor: pointer;
-  transition: 160ms ease;
-}
-
-.close-btn:hover {
-  background: var(--nt-surface-hover);
-}
-
-.search-input {
-  width: 100%;
-  margin: 1.35rem 0 0;
-  padding: 0.95rem 1rem;
-  border-radius: var(--nt-radius-md);
-  border: 1px solid var(--nt-border);
-  background: var(--nt-surface);
-  font-size: 0.95rem;
-  color: var(--nt-text);
-  transition: 160ms ease;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--nt-accent);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.search-input::placeholder {
-  color: var(--nt-text-faint);
-}
-
-.company-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  margin-top: 1.2rem;
-}
-
-.search-state {
-  margin: 0;
-  padding: 0.4rem 0.2rem;
-  font-size: 0.9rem;
-  color: var(--nt-text-faint);
-}
-
-.company-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  padding: 1rem;
-  border: 1px solid var(--nt-border);
-  border-radius: var(--nt-radius-md);
-  background: rgba(255, 255, 255, 0.03);
-  text-align: left;
-  color: inherit;
-  cursor: pointer;
-  transition: 160ms ease;
-}
-
-.company-item:hover {
-  border-color: var(--nt-border-strong);
-  background: var(--nt-surface-hover);
-}
-
-.company-item-selected {
-  border-color: var(--nt-border-strong);
-  background: var(--nt-accent-soft);
-}
-
-.company-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  min-width: 0;
-}
-
-.company-symbol-block {
+  z-index: 60;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 74px;
-  height: 74px;
-  border-radius: var(--nt-radius-sm);
-  border: 1px solid var(--nt-border);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.82);
+  padding: clamp(1rem, 4vh, 3rem) clamp(1rem, 4vw, 3rem);
+  animation: overlay-in 220ms ease-out both;
 }
 
-.company-symbol-block strong {
-  font-size: 1.3rem;
-  font-weight: 600;
-  letter-spacing: -0.04em;
-}
-
-.company-copy {
-  min-width: 0;
-}
-
-.company-copy strong {
-  display: block;
-  font-size: 1.02rem;
-}
-
-.company-copy span {
-  display: block;
-  margin-top: 0.35rem;
-  color: var(--nt-text-faint);
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.company-copy p {
-  margin: 0.6rem 0 0;
-  color: var(--nt-text);
-  line-height: 1.55;
-  font-size: 0.92rem;
-}
-
-.selection-switch {
-  flex-shrink: 0;
-  position: relative;
-  width: 56px;
-  height: 32px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  transition: 160ms ease;
-}
-
-.selection-switch-knob {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  background: #ffffff;
-  transition: 160ms ease;
-}
-
-.selection-switch-active {
-  background: var(--nt-accent);
-}
-
-.selection-switch-active .selection-switch-knob {
-  left: 28px;
-}
-
-.modal-footer {
+.sheet {
   display: flex;
+  width: min(38rem, 100%);
+  max-height: 100%;
+  flex-direction: column;
+  border: 1px solid var(--nt-rule);
+  background: #000;
+  color: #fff;
+  font-family: var(--nt-font-sans);
+  animation: sheet-in 260ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.sheet-bar {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--nt-rule);
+  padding: 0.9rem clamp(1.1rem, 3vw, 1.75rem);
+}
+
+.eyebrow {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.6rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.sheet-close {
+  border: 0;
+  background: transparent;
+  padding: 0 0.15rem;
+  color: rgba(255, 255, 255, 0.6);
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.sheet-close:hover {
+  color: #fff;
+}
+
+.sheet-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: clamp(1.5rem, 4vh, 2.25rem) clamp(1.1rem, 3vw, 1.75rem) 0;
+}
+
+.sheet-title {
+  font-size: clamp(1.35rem, 2.6vw, 1.8rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.sheet-search {
+  width: 100%;
+  margin-top: 1.5rem;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.35rem 0 0.55rem;
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  transition: border-color 180ms ease;
+}
+
+.sheet-search::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.82rem;
+}
+
+.sheet-search:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+}
+
+.sheet-search:focus {
+  border-bottom-color: #fff;
+}
+
+.sheet-list {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  margin-top: 1.75rem;
+  border-top: 1px solid var(--nt-rule);
+  /* Keeps the marks clear of the thumb, and stops the rows shifting when
+     the list grows past the sheet. */
+  padding-right: 0.9rem;
+  scrollbar-gutter: stable;
+}
+
+.sheet-note {
+  padding: 1.1rem 0;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+/* Shares the wizard's row grammar: symbol, name, one square that fills. */
+.option {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 4.4em 1fr auto;
   align-items: center;
   gap: 1rem;
-  margin-top: 1.35rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.modal-footer p {
-  margin: 0;
-  color: var(--nt-text-muted);
-}
-
-.modal-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.secondary,
-.primary {
-  border-radius: 1rem;
-  padding: 0.8rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--nt-rule);
+  background: transparent;
+  padding: 0.95rem 0;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
+}
+
+.option-symbol {
+  color: rgba(255, 255, 255, 0.55);
   font-size: 0.92rem;
-  transition: 160ms ease;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 180ms ease;
 }
 
-.secondary {
-  border: 1px solid var(--nt-border);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--nt-text);
+.option-name {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 180ms ease;
 }
 
-.secondary:hover {
-  background: var(--nt-surface-hover);
+.option-mark {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: background-color 180ms ease, border-color 180ms ease;
 }
 
-.primary {
-  border: 1px solid var(--nt-border-strong);
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--nt-text-strong);
+.option:hover .option-symbol {
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.primary:hover {
-  background: rgba(255, 255, 255, 0.16);
+.option:hover .option-mark {
+  border-color: rgba(255, 255, 255, 0.75);
 }
 
-@media (max-width: 720px) {
-  .company-item {
-    align-items: flex-start;
+.option.is-on .option-symbol {
+  color: #fff;
+}
+
+.option.is-on .option-name {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.option.is-on .option-mark {
+  border-color: #fff;
+  background: #fff;
+}
+
+.sheet-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--nt-rule);
+  padding: 1rem clamp(1.1rem, 3vw, 1.75rem);
+}
+
+.sheet-count {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.sheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.sheet-secondary {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font: inherit;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.sheet-secondary:hover {
+  color: #fff;
+}
+
+.sheet-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.8rem 1.15rem;
+  color: #fff;
+  font: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.sheet-primary:hover {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
   }
 
-  .modal-footer {
-    flex-direction: column;
-    align-items: stretch;
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
   }
 
-  .modal-actions {
-    width: 100%;
+  to {
+    opacity: 1;
+    transform: none;
   }
+}
 
-  .modal-actions button {
-    flex: 1;
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .sheet {
+    animation: none;
   }
 }

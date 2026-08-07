@@ -1,62 +1,68 @@
 <div class="overlay" (click)="close.emit()">
   <div
-    class="modal"
+    class="sheet"
     role="dialog"
     aria-modal="true"
     aria-labelledby="company-selector-title"
     (click)="$event.stopPropagation()"
   >
-    <div class="modal-header">
-      <div>
-        <p class="eyebrow">{{ i18n.t('watchlist.title') }}</p>
-        <h2 id="company-selector-title">{{ i18n.t('modal.title') }}</h2>
-        <p class="intro">{{ i18n.t('modal.intro') }}</p>
-      </div>
+    <header class="sheet-bar">
+      <p class="eyebrow">{{ i18n.t('watchlist.title') }}</p>
+      <button
+        type="button"
+        class="sheet-close"
+        (click)="close.emit()"
+        [attr.aria-label]="i18n.t('modal.closeAria')"
+      >
+        <span aria-hidden="true">&#215;</span>
+      </button>
+    </header>
 
-      <button class="close-btn" (click)="close.emit()" [attr.aria-label]="i18n.t('modal.closeAria')">×</button>
+    <div class="sheet-body">
+      <h2 id="company-selector-title" class="sheet-title">{{ i18n.t('modal.title') }}</h2>
+
+      <input
+        type="text"
+        class="sheet-search"
+        [(ngModel)]="search"
+        (ngModelChange)="onSearchChange($event)"
+        [placeholder]="i18n.t('modal.searchPlaceholder')"
+      />
+
+      <div class="sheet-list">
+        @if (isSearching) {
+          <p class="sheet-note">{{ i18n.t('modal.searching') }}</p>
+        } @else if (showNoResults) {
+          <p class="sheet-note">{{ i18n.t('modal.noResults', { term: search }) }}</p>
+        }
+
+        @for (company of filteredCompanies; track company.symbol) {
+          <button
+            type="button"
+            class="option"
+            [class.is-on]="isChecked(company)"
+            [attr.aria-pressed]="isChecked(company)"
+            (click)="toggleCompany(company)"
+          >
+            <span class="option-symbol">{{ company.symbol }}</span>
+            <span class="option-name">{{ company.name }}</span>
+            <span class="option-mark" aria-hidden="true"></span>
+          </button>
+        }
+      </div>
     </div>
 
-    <input
-      type="text"
-      [(ngModel)]="search"
-      (ngModelChange)="onSearchChange($event)"
-      [placeholder]="i18n.t('modal.searchPlaceholder')"
-      class="search-input"
-    />
-
-    <div class="company-list">
-      @if (isSearching) {
-        <p class="search-state">{{ i18n.t('modal.searching') }}</p>
-      } @else if (showNoResults) {
-        <p class="search-state">{{ i18n.t('modal.noResults', { term: search }) }}</p>
-      }
-      @for (company of filteredCompanies; track company.symbol) {
-        <button type="button" class="company-item" [class.company-item-selected]="isChecked(company)" [attr.aria-pressed]="isChecked(company)" (click)="toggleCompany(company)">
-          <div class="company-info">
-            <div class="company-symbol-block">
-              <strong>{{ company.symbol }}</strong>
-            </div>
-
-            <div class="company-copy">
-              <strong>{{ company.name }}</strong>
-              <span>{{ i18n.sector(company.sector) }}</span>
-              <p>{{ i18n.companyBlurb(company) }}</p>
-            </div>
-          </div>
-
-          <span class="selection-switch" [class.selection-switch-active]="isChecked(company)" aria-hidden="true">
-            <span class="selection-switch-knob"></span>
-          </span>
+    <footer class="sheet-foot">
+      <p class="sheet-count">{{ i18n.t('modal.selectedCount', { count: tempSelection.length }) }}</p>
+      <div class="sheet-actions">
+        <button type="button" class="sheet-secondary" (click)="close.emit()">
+          {{ i18n.t('action.cancel') }}
         </button>
-      }
-    </div>
-
-    <div class="modal-footer">
-      <p>{{ i18n.t('modal.selectedCount', { count: tempSelection.length }) }}</p>
-      <div class="modal-actions">
-        <button class="secondary" (click)="close.emit()">{{ i18n.t('action.cancel') }}</button>
-        <button class="primary" (click)="save()">{{ i18n.t('modal.save') }}</button>
+        <button type="button" class="sheet-primary" (click)="save()">
+          <span>{{ i18n.t('modal.save') }}</span>
+          <span aria-hidden="true">&#8594;</span>
+        </button>
       </div>
-    </div>
+    </footer>
   </div>
 </div>

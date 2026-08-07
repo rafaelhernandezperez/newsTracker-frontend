@@ -165,7 +165,7 @@
 /* ------------------------------------------------------------------ */
 .auth {
   --auth-gutter: clamp(1.25rem, 3.4vw, 2.75rem);
-  --auth-rule: rgba(255, 255, 255, 0.14);
+  --auth-rule: var(--nt-rule);
 
   position: relative;
   z-index: 10;

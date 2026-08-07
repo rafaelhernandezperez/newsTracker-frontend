@@ -41,6 +41,11 @@
   --nt-quote-down: #ff5757;
   --nt-quote-flat: rgba(255, 255, 255, 0.9);
 
+  /* The hairline the redesigned screens are built on. Every rule — top bar,
+     column divider, list separator — is this one value, so the grid reads as
+     a single structure across pages. */
+  --nt-rule: rgba(255, 255, 255, 0.14);
+
   --nt-radius-lg: 1.25rem;
   --nt-radius-md: 1rem;
   --nt-radius-sm: 0.85rem;
@@ -53,6 +58,42 @@ body {
   background: var(--nt-bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbars — the one piece of chrome the browser insists on drawing.*/
+/* Reduced to a hairline thumb with no track and no arrow buttons, so  */
+/* it reads as part of the rule system instead of an OS widget. Both   */
+/* syntaxes: the standard properties inherit everywhere, the WebKit    */
+/* pseudo-elements cover browsers that do not support them yet.        */
+/* ------------------------------------------------------------------ */
+/* `scrollbar-color` inherits, `scrollbar-width` does not — so both are set on
+   every element rather than just the root. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
 }
 
 /* Visible keyboard focus everywhere — components use outline:none today. */
