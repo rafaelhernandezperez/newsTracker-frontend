@@ -9,7 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ClockService } from '../../core/services/clock.service';
 import { LanguageService } from '../../core/services/language.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
-import { PushService } from '../../core/services/push.service';
+import { PushEnableResult, PushService } from '../../core/services/push.service';
 import { AlertPrefsService } from '../../core/services/alert-prefs.service';
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 import { TickerBoardComponent } from '../../shared/components/ticker-board/ticker-board';
@@ -18,6 +18,7 @@ import { TickerRibbonComponent } from '../../shared/components/ticker-ribbon/tic
 type Screen = 'welcome' | 'auth' | 'wizard';
 type StepKey = 'tickers' | 'alerts';
 type AuthMode = 'login' | 'register';
+type PushSetupState = 'idle' | 'enabling' | PushEnableResult;
 
 type Step = {
   key: StepKey;
@@ -64,6 +65,9 @@ export class Login implements OnDestroy {
   // Signals so state mutated after `await` still triggers zoneless change detection.
   protected readonly authError = signal('');
   protected readonly authBusy = signal(false);
+  protected readonly setupBusy = signal(false);
+  protected readonly pushSetupState = signal<PushSetupState>('idle');
+  protected readonly pushSkipped = signal(false);
 
   protected readonly screen = signal<Screen>('welcome');
   protected readonly currentStep = signal(0);
@@ -111,6 +115,10 @@ export class Login implements OnDestroy {
   protected readonly activeStep = computed<Step>(() => this.steps[this.currentStep()]);
 
   protected readonly isLastStep = computed(() => this.currentStep() === this.steps.length - 1);
+
+  protected readonly wantsNotifications = computed(() =>
+    this.alertPreferences().some((preference) => preference.enabled),
+  );
 
   /** Bottom-anchored tallies, so each step closes on a fact. */
   protected readonly stepTally = computed(() =>
@@ -212,7 +220,6 @@ export class Login implements OnDestroy {
         } catch {
           // Non-fatal: keep local/default prefs.
         }
-        void this.push.enable();
         await this.router.navigate(['/portfolio']);
       } else {
         await this.auth.register(this.fullName, this.email.trim(), this.password);
@@ -228,8 +235,23 @@ export class Login implements OnDestroy {
 
   protected async continue(): Promise<void> {
     if (this.isLastStep()) {
+      if (this.setupBusy() || this.pushSetupState() === 'enabling') {
+        return;
+      }
+
+      // Start the browser permission request before any awaited API work. The
+      // call to PushService.enable() synchronously invokes requestPermission(),
+      // preserving the user activation from this exact button click.
+      const shouldEnablePush = this.wantsNotifications() && !this.pushSkipped();
+      const pushAttempt =
+        shouldEnablePush && this.pushSetupState() !== 'enabled'
+          ? this.enablePushFromGesture()
+          : undefined;
+
+      this.setupBusy.set(true);
       const companies = [...this.selectedTickers()].map(
-        (symbol) => COMPANIES.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
+        (symbol) =>
+          COMPANIES.find((company) => company.symbol === symbol) ?? { symbol, name: symbol },
       );
       this.preferences.setCompanies(companies);
 
@@ -251,13 +273,36 @@ export class Login implements OnDestroy {
       } catch {
         // Non-fatal: the prefs still live locally; server keeps defaults.
       }
-      void this.push.enable();
+      const pushResult = pushAttempt ? await pushAttempt : this.pushSetupState();
+      if (shouldEnablePush && pushResult !== 'enabled') {
+        // Keep the status visible and let the user retry or explicitly continue
+        // without browser delivery. Never fail onboarding silently.
+        this.setupBusy.set(false);
+        return;
+      }
 
-      void this.router.navigate(['/portfolio']);
+      await this.router.navigate(['/portfolio']);
+      this.setupBusy.set(false);
       return;
     }
 
     this.currentStep.update((step) => step + 1);
+  }
+
+  protected continueWithoutPush(): void {
+    this.pushSkipped.set(true);
+    void this.continue();
+  }
+
+  private enablePushFromGesture(): Promise<PushEnableResult> {
+    this.pushSetupState.set('enabling');
+    // Keep this call before any await: enable() synchronously opens the native
+    // browser permission prompt when permission is still `default`.
+    const attempt = this.push.enable();
+    return attempt.then((result) => {
+      this.pushSetupState.set(result);
+      return result;
+    });
   }
 
   private authErrorMessage(error: unknown): string {
@@ -304,11 +349,8 @@ export class Login implements OnDestroy {
   protected toggleAlert(id: string): void {
     this.alertPreferences.update((preferences) =>
       preferences.map((preference) =>
-        preference.id === id
-          ? { ...preference, enabled: !preference.enabled }
-          : preference,
+        preference.id === id ? { ...preference, enabled: !preference.enabled } : preference,
       ),
     );
   }
-
 }

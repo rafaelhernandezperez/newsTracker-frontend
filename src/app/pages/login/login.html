@@ -246,12 +246,83 @@
                 </li>
               }
             </ul>
+
+            @if (wantsNotifications()) {
+              <section
+                class="push-status"
+                [class.is-success]="pushSetupState() === 'enabled'"
+                [class.is-error]="
+                  pushSetupState() === 'denied' ||
+                  pushSetupState() === 'unsupported' ||
+                  pushSetupState() === 'failed'
+                "
+                role="status"
+                aria-live="polite"
+              >
+                <p class="push-status-title">{{ i18n.t('alerts.browserTitle') }}</p>
+                <p class="push-status-copy">
+                  @switch (pushSetupState()) {
+                    @case ('enabling') {
+                      {{ i18n.t('alerts.browserEnabling') }}
+                    }
+                    @case ('enabled') {
+                      {{ i18n.t('alerts.browserEnabled') }}
+                    }
+                    @case ('denied') {
+                      {{ i18n.t('alerts.browserDenied') }}
+                    }
+                    @case ('dismissed') {
+                      {{ i18n.t('alerts.browserDismissed') }}
+                    }
+                    @case ('unsupported') {
+                      {{ i18n.t('alerts.browserUnsupported') }}
+                    }
+                    @case ('failed') {
+                      {{ i18n.t('alerts.browserFailed') }}
+                    }
+                    @default {
+                      {{ i18n.t('alerts.browserDescription') }}
+                    }
+                  }
+                </p>
+              </section>
+            }
           }
 
-          <button type="button" class="auth-submit" (click)="continue()">
-            <span>{{ isLastStep() ? i18n.t('login.getStarted') : i18n.t('action.next') }}</span>
+          <button
+            type="button"
+            class="auth-submit"
+            [disabled]="setupBusy() || pushSetupState() === 'enabling'"
+            (click)="continue()"
+          >
+            <span>
+              @if (setupBusy() || pushSetupState() === 'enabling') {
+                {{ i18n.t('login.pleaseWait') }}
+              } @else if (
+                isLastStep() &&
+                wantsNotifications() &&
+                pushSetupState() !== 'enabled' &&
+                !pushSkipped()
+              ) {
+                {{ i18n.t('alerts.enableAndFinish') }}
+              } @else {
+                {{ isLastStep() ? i18n.t('login.getStarted') : i18n.t('action.next') }}
+              }
+            </span>
             <span class="auth-submit-arrow" aria-hidden="true">&#8594;</span>
           </button>
+
+          @if (
+            isLastStep() &&
+            wantsNotifications() &&
+            pushSetupState() !== 'idle' &&
+            pushSetupState() !== 'enabling' &&
+            pushSetupState() !== 'enabled'
+          ) {
+            <button type="button" class="push-skip" (click)="continueWithoutPush()">
+              {{ i18n.t('alerts.continueWithout') }}
+            </button>
+          }
 
           <p class="auth-alt">
             <span>{{ stepTally() }}</span>

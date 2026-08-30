@@ -128,7 +128,10 @@
   letter-spacing: 0.22em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .hero-cta:hover:not(:disabled) {
@@ -195,7 +198,9 @@
   font-size: 1.15rem;
   line-height: 1;
   cursor: pointer;
-  transition: transform 180ms ease, opacity 180ms ease;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
 }
 
 .auth-back:hover {
@@ -296,8 +301,7 @@
   flex-direction: column;
   border-right: 1px solid var(--auth-rule);
   border-left: 1px solid var(--auth-rule);
-  padding: clamp(2rem, 5vh, 3.25rem) clamp(1.5rem, 3vw, 2.5rem)
-    clamp(1.5rem, 4vh, 2.5rem);
+  padding: clamp(2rem, 5vh, 3.25rem) clamp(1.5rem, 3vw, 2.5rem) clamp(1.5rem, 4vh, 2.5rem);
 }
 
 .auth-form {
@@ -371,7 +375,10 @@
   letter-spacing: 0.24em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .auth-submit:hover:not(:disabled) {
@@ -496,7 +503,9 @@
   width: 0.85rem;
   height: 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  transition: background-color 180ms ease, border-color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
 }
 
 .option:hover .option-symbol {
@@ -518,6 +527,55 @@
 .option.is-on .option-mark {
   border-color: #fff;
   background: #fff;
+}
+
+.push-status {
+  margin-top: 1.25rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.35);
+  padding: 0.15rem 0 0.15rem 1rem;
+}
+
+.push-status.is-success {
+  border-left-color: var(--nt-pos);
+}
+
+.push-status.is-error {
+  border-left-color: var(--nt-neg);
+}
+
+.push-status-title {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.push-status-copy {
+  margin-top: 0.45rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.push-skip {
+  align-self: flex-start;
+  margin-top: 1rem;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  padding: 0 0 0.2rem;
+  color: rgba(255, 255, 255, 0.65);
+  font: inherit;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.push-skip:hover {
+  border-bottom-color: #fff;
+  color: #fff;
 }
 
 /* Everything after the blast arrives on clean black. */
