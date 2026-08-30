@@ -1,7 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  OnInit,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import {
   EMPTY,
   Subscription,
@@ -29,6 +37,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
 import { CompanySelectorModalComponent } from '../../shared/components/company-selector-modal/company-selector-modal';
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
+import { SettingsModalComponent } from '../../shared/components/settings-modal/settings-modal';
 
 type NavItem = {
   labelKey: TranslationKey;
@@ -67,7 +76,13 @@ const IMPORTANCE_RANK: Record<string, number> = {
 @Component({
   selector: 'app-portfolio',
   standalone: true,
-  imports: [CommonModule, RouterLink, CompanySelectorModalComponent, LanguageToggleComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    CompanySelectorModalComponent,
+    LanguageToggleComponent,
+    SettingsModalComponent,
+  ],
   templateUrl: './portfolio.html',
   styleUrl: './portfolio.css',
 })
@@ -77,7 +92,6 @@ export class PortfolioComponent implements OnInit {
   private readonly preferences = inject(UserPreferencesService);
   private readonly auth = inject(AuthService);
   private readonly watchlist = inject(WatchlistService);
-  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   readonly i18n = inject(LanguageService);
@@ -88,6 +102,7 @@ export class PortfolioComponent implements OnInit {
   private newsLoadSubscription?: Subscription;
 
   isModalOpen = false;
+  isSettingsOpen = false;
 
   /** Loading flags so the sidebar/news areas don't flash the empty state on first load. */
   readonly isWatchlistLoading = signal(false);
@@ -145,6 +160,7 @@ export class PortfolioComponent implements OnInit {
   }
 
   openModal(): void {
+    this.isSettingsOpen = false;
     this.isModalOpen = true;
   }
 
@@ -152,16 +168,20 @@ export class PortfolioComponent implements OnInit {
     this.isModalOpen = false;
   }
 
+  openSettings(): void {
+    this.isModalOpen = false;
+    this.isSettingsOpen = true;
+  }
+
+  closeSettings(): void {
+    this.isSettingsOpen = false;
+  }
+
   addCompanies(companies: Company[]): void {
     this.selectedCompanies = [...companies];
     void this.watchlist.save(companies);
     this.syncViewModels();
     this.closeModal();
-  }
-
-  async logout(): Promise<void> {
-    await this.auth.logout();
-    await this.router.navigate(['/login']);
   }
 
   /** Followed companies from prefs, enriched from the catalogue when curated. */
@@ -251,9 +271,7 @@ export class PortfolioComponent implements OnInit {
             })
             .pipe(
               map((response) =>
-                response.items[0]
-                  ? this.mapNewsCard(company, response.items[0])
-                  : null,
+                response.items[0] ? this.mapNewsCard(company, response.items[0]) : null,
               ),
               filter((card): card is NewsCard => card !== null),
               catchError(() => EMPTY),
@@ -303,9 +321,7 @@ export class PortfolioComponent implements OnInit {
         // Render each company as soon as it resolves instead of waiting for
         // the slowest request in the watchlist.
         this.newsCards = [
-          ...this.newsCards.filter(
-            (existing) => existing.company.symbol !== card.company.symbol,
-          ),
+          ...this.newsCards.filter((existing) => existing.company.symbol !== card.company.symbol),
           card,
         ].sort(
           (a, b) =>

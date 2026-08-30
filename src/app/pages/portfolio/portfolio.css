@@ -128,7 +128,9 @@
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: color 180ms ease, border-color 180ms ease;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .link-action:hover {

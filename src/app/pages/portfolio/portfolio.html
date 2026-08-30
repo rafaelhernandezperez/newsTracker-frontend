@@ -5,8 +5,8 @@
     <a routerLink="/portfolio" class="terminal-wordmark">NewsTracker</a>
 
     <div class="terminal-controls">
-      <button type="button" class="terminal-action" (click)="logout()">
-        {{ i18n.t('nav.logout') }}
+      <button type="button" class="terminal-action" (click)="openSettings()">
+        {{ i18n.t('nav.settings') }}
       </button>
       <app-language-toggle class="terminal-language" />
     </div>
@@ -42,7 +42,9 @@
               </a>
             </li>
           } @empty {
-            <li><p class="rail-note">{{ i18n.t('watchlist.empty') }}</p></li>
+            <li>
+              <p class="rail-note">{{ i18n.t('watchlist.empty') }}</p>
+            </li>
           }
         </ul>
       }
@@ -63,7 +65,9 @@
         <ol class="feed-list">
           @for (card of newsCards; track card.company.symbol; let index = $index) {
             <li class="story" [class.is-empty]="card.empty">
-              <span class="story-index" aria-hidden="true">{{ index < 9 ? '0' : '' }}{{ index + 1 }}</span>
+              <span class="story-index" aria-hidden="true"
+                >{{ index < 9 ? '0' : '' }}{{ index + 1 }}</span
+              >
 
               <div class="story-body">
                 <p class="story-meta">
@@ -92,7 +96,10 @@
                   }
                 }
 
-                <a class="link-action story-more" [routerLink]="['/portfolio', card.company.symbol]">
+                <a
+                  class="link-action story-more"
+                  [routerLink]="['/portfolio', card.company.symbol]"
+                >
                   {{ i18n.t('dashboard.viewMore') }}
                   <span aria-hidden="true">&#8594;</span>
                 </a>
@@ -121,5 +128,9 @@
       (close)="closeModal()"
       (saveSelection)="addCompanies($event)"
     />
+  }
+
+  @if (isSettingsOpen) {
+    <app-settings-modal (close)="closeSettings()" />
   }
 </main>
