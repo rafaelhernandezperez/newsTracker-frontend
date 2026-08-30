@@ -7,8 +7,8 @@
     <a routerLink="/portfolio" class="terminal-wordmark">NewsTracker</a>
 
     <div class="terminal-controls">
-      <button type="button" class="terminal-action" (click)="logout()">
-        {{ i18n.t('nav.logout') }}
+      <button type="button" class="terminal-action" (click)="openSettings()">
+        {{ i18n.t('nav.settings') }}
       </button>
       <app-language-toggle class="terminal-language" />
     </div>
@@ -47,7 +47,9 @@
               </a>
             </li>
           } @empty {
-            <li><p class="rail-note">{{ i18n.t('watchlist.empty') }}</p></li>
+            <li>
+              <p class="rail-note">{{ i18n.t('watchlist.empty') }}</p>
+            </li>
           }
         </ul>
       </aside>
@@ -127,9 +129,15 @@
 
         <p class="chart-legend" aria-hidden="true">
           <span class="chart-legend-note">{{ i18n.t('chart.legendNote') }}</span>
-          <span class="legend-item"><span class="legend-dot is-up"></span>{{ i18n.t('chart.positive') }}</span>
-          <span class="legend-item"><span class="legend-dot is-down"></span>{{ i18n.t('chart.negative') }}</span>
-          <span class="legend-item"><span class="legend-dot is-flat"></span>{{ i18n.t('chart.neutral') }}</span>
+          <span class="legend-item"
+            ><span class="legend-dot is-up"></span>{{ i18n.t('chart.positive') }}</span
+          >
+          <span class="legend-item"
+            ><span class="legend-dot is-down"></span>{{ i18n.t('chart.negative') }}</span
+          >
+          <span class="legend-item"
+            ><span class="legend-dot is-flat"></span>{{ i18n.t('chart.neutral') }}</span
+          >
         </p>
 
         <!-- The session's numbers as a data strip, one cell per figure. -->
@@ -159,7 +167,9 @@
           <ol class="feed-list">
             @for (item of relatedNewsItems; track item.id; let index = $index) {
               <li class="story">
-                <span class="story-index" aria-hidden="true">{{ index < 9 ? '0' : '' }}{{ index + 1 }}</span>
+                <span class="story-index" aria-hidden="true"
+                  >{{ index < 9 ? '0' : '' }}{{ index + 1 }}</span
+                >
 
                 <div class="story-body">
                   <p class="story-meta">
@@ -233,6 +243,10 @@
       (close)="closeManage()"
       (saveSelection)="saveManagedCompanies($event)"
     />
+  }
+
+  @if (isSettingsOpen) {
+    <app-settings-modal (close)="closeSettings()" />
   }
 
   @if (selectedNewsItem) {

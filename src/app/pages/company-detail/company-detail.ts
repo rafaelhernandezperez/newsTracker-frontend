@@ -15,7 +15,7 @@ import {
   inject,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   EMPTY,
   Observable,
@@ -58,11 +58,11 @@ import { MarketDataService } from '../../core/services/market-data.service';
 import { NewsImportance, NewsItem, NewsSentiment } from '../../core/models/news.model';
 import { NewsDataService } from '../../core/services/news-data.service';
 import { UserPreferencesService } from '../../core/services/user-preferences.service';
-import { AuthService } from '../../core/services/auth.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
 import { CompanySelectorModalComponent } from '../../shared/components/company-selector-modal/company-selector-modal';
 import { CurrencyToggleComponent } from '../../shared/components/currency-toggle/currency-toggle';
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
+import { SettingsModalComponent } from '../../shared/components/settings-modal/settings-modal';
 
 /**
  * The chart can't read CSS variables, so the two market colours are mirrored
@@ -71,6 +71,8 @@ import { LanguageToggleComponent } from '../../shared/components/language-toggle
  */
 const QUOTE_UP = '53, 224, 141';
 const QUOTE_DOWN = '255, 87, 87';
+/** Keep the feed useful without turning long timeframes into an endless list. */
+const ADDITIONAL_NEWS_DISPLAY_LIMIT = 12;
 
 type NavItem = {
   labelKey: TranslationKey;
@@ -120,6 +122,12 @@ type TimeframeData = {
   relatedNews: RelatedNewsItem[];
 };
 
+type ChosenChartNews = {
+  item: RelatedNewsItem;
+  rank: number;
+  value: number;
+};
+
 @Component({
   selector: 'app-company-detail',
   standalone: true,
@@ -129,17 +137,16 @@ type TimeframeData = {
     CompanySelectorModalComponent,
     CurrencyToggleComponent,
     LanguageToggleComponent,
+    SettingsModalComponent,
   ],
   templateUrl: './company-detail.html',
   styleUrl: './company-detail.css',
 })
 export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly marketDataService = inject(MarketDataService);
   private readonly newsDataService = inject(NewsDataService);
   private readonly preferences = inject(UserPreferencesService);
-  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
@@ -172,6 +179,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   isWatchlistOpen = false;
   /** The watchlist editor, opened from "Manage" without leaving this page. */
   isManageOpen = false;
+  isSettingsOpen = false;
   readonly availableCompanies: Company[] = COMPANIES;
   /** Selection handed to the editor; snapshotted when it opens. */
   managedCompanies: Company[] = [];
@@ -335,12 +343,23 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   openManage(): void {
+    this.isSettingsOpen = false;
     this.managedCompanies = this.followedCompanies();
     this.isManageOpen = true;
   }
 
   closeManage(): void {
     this.isManageOpen = false;
+  }
+
+  openSettings(): void {
+    this.isManageOpen = false;
+    this.selectedNewsItem = null;
+    this.isSettingsOpen = true;
+  }
+
+  closeSettings(): void {
+    this.isSettingsOpen = false;
   }
 
   /** Companies currently followed, enriched from the catalogue when curated. */
@@ -361,6 +380,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   openNewsModal(item: RelatedNewsItem): void {
+    this.isSettingsOpen = false;
     this.selectedNewsItem = item;
   }
 
@@ -373,11 +393,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     if (this.selectedNewsItem) {
       this.closeNewsModal();
     }
-  }
-
-  async logout(): Promise<void> {
-    await this.auth.logout();
-    await this.router.navigate(['/login']);
   }
 
   selectTimeframe(timeframe: TimeframeOption): void {
@@ -487,7 +502,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       {
         labelKey: 'stat.peRatio',
         value:
-          typeof this.quote?.trailingPE === 'number' ? `${this.quote.trailingPE.toFixed(2)}x` : '--',
+          typeof this.quote?.trailingPE === 'number'
+            ? `${this.quote.trailingPE.toFixed(2)}x`
+            : '--',
       },
       {
         labelKey: 'stat.marketCap',
@@ -549,7 +566,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       timeframe.label === '5D'
         ? this.newsDataService
             .getCompanyNews(symbol, this.company?.name, {
-              limit: 8,
+              // Fetch a few more than we display because today's chart marker
+              // may be removed from this feed as a duplicate.
+              limit: ADDITIONAL_NEWS_DISPLAY_LIMIT + 4,
               from: this.localTodayDateKey(),
               rssOnly: true,
             })
@@ -588,7 +607,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   /** Add news and chart markers when localization finishes. */
   private applyTimeframeData({ chartNews, relatedNews }: TimeframeData): void {
     this.chartNewsItems = chartNews;
-    this.relatedNewsItems = relatedNews;
+    // The feed complements the chart: once the most important story for each
+    // chart day has been selected, don't repeat those stories below it.
+    this.relatedNewsItems = this.excludeChartNews(relatedNews);
     this.buildChart();
     this.changeDetectorRef.markForCheck();
   }
@@ -684,23 +705,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return;
     }
 
-    // Convert here so the price axis reads in the same currency as the header
-    // and the stat cards.
-    const currency = this.quotedCurrency;
-    const seriesData = [...this.chartData]
-      .filter((point) => Boolean(point.date))
-      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-      .reduce<{ time: string; value: number }[]>((acc, point) => {
-        const value = this.currencyService.convert(point.value, currency).amount;
-        const last = acc[acc.length - 1];
-        // Collapse any duplicate dates (Lightweight Charts requires unique, ascending times).
-        if (last && last.time === point.date) {
-          last.value = value;
-        } else {
-          acc.push({ time: point.date, value });
-        }
-        return acc;
-      }, []);
+    const seriesData = this.getChartSeriesData();
 
     // Green when the range closed above where it opened, red when it didn't —
     // the line answers the question before the axis does.
@@ -738,8 +743,36 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return [];
     }
 
+    const chosen = this.chooseChartNews(data);
+
+    // Lightweight Charts requires markers in ascending time order.
+    return [...chosen.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([time, { item, value }]) => {
+        this.markerLookup.set(time, item);
+        const sentiment = this.getMarkerSentiment(item);
+
+        return {
+          time,
+          // Sit exactly on the line at this point's price.
+          position: 'atPriceMiddle',
+          price: value,
+          shape: 'circle',
+          color: this.sentimentColor(sentiment),
+          size: this.importanceSize(item.importance),
+        } satisfies SeriesMarker<Time>;
+      });
+  }
+
+  /** Pick at most one story per chart day: the one with the highest importance. */
+  private chooseChartNews(data: { time: string; value: number }[]): Map<string, ChosenChartNews> {
+    const chosen = new Map<string, ChosenChartNews>();
+
+    if (data.length < 2) {
+      return chosen;
+    }
+
     // Snap each article to the nearest chart point by its real publish date.
-    const chosen = new Map<string, { item: RelatedNewsItem; rank: number; value: number }>();
     for (const item of this.chartNewsItems) {
       if (!item.dateKey) {
         continue;
@@ -760,23 +793,54 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       }
     }
 
-    // Lightweight Charts requires markers in ascending time order.
-    return [...chosen.entries()]
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-      .map(([time, { item, value }]) => {
-        this.markerLookup.set(time, item);
-        const sentiment = this.getMarkerSentiment(item);
+    return chosen;
+  }
 
-        return {
-          time,
-          // Sit exactly on the line at this point's price.
-          position: 'atPriceMiddle',
-          price: value,
-          shape: 'circle',
-          color: this.sentimentColor(sentiment),
-          size: this.importanceSize(item.importance),
-        } satisfies SeriesMarker<Time>;
-      });
+  /** Stories below the chart must add information, not duplicate its markers. */
+  private excludeChartNews(items: RelatedNewsItem[]): RelatedNewsItem[] {
+    const represented = new Set<string>();
+
+    for (const { item } of this.chooseChartNews(this.getChartSeriesData()).values()) {
+      for (const key of this.newsIdentityKeys(item)) {
+        represented.add(key);
+      }
+    }
+
+    return items
+      .filter((item) => !this.newsIdentityKeys(item).some((key) => represented.has(key)))
+      .slice(0, ADDITIONAL_NEWS_DISPLAY_LIMIT);
+  }
+
+  /** IDs normally match across API queries; the URL covers feeds that regenerate IDs. */
+  private newsIdentityKeys(item: RelatedNewsItem): string[] {
+    const keys = [`id:${item.id}`];
+    const link = item.link?.trim().replace(/\/+$/, '');
+
+    if (link) {
+      keys.push(`link:${link}`);
+    }
+
+    return keys;
+  }
+
+  /** Build the unique, ascending timeline shared by the chart and news selection. */
+  private getChartSeriesData(): { time: string; value: number }[] {
+    const currency = this.quotedCurrency;
+
+    return [...this.chartData]
+      .filter((point) => Boolean(point.date))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      .reduce<{ time: string; value: number }[]>((acc, point) => {
+        const value = this.currencyService.convert(point.value, currency).amount;
+        const last = acc[acc.length - 1];
+        // Lightweight Charts requires unique, ascending times.
+        if (last && last.time === point.date) {
+          last.value = value;
+        } else {
+          acc.push({ time: point.date, value });
+        }
+        return acc;
+      }, []);
   }
 
   /** Nearest chart point to a news date, within `maxDays`; -1 if none close enough. */
@@ -853,15 +917,17 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
   private newsLimitForTimeframe(days: number): number {
     if (days <= 5) {
-      return 8;
+      return 16;
     }
     if (days <= 30) {
-      return 12;
+      // Roughly one story for each trading day plus enough candidates to
+      // populate the additional-news feed after chart stories are excluded.
+      return 40;
     }
     if (days <= 90) {
-      return 30;
+      return 80;
     }
-    return 40;
+    return 120;
   }
 
   /** Current local calendar day in the API's yyyy-mm-dd query format. */
@@ -874,7 +940,9 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private getTimeframeOption(label: TimeframeOption['label']): TimeframeOption {
-    return this.timeframeOptions.find((option) => option.label === label) ?? this.timeframeOptions[1];
+    return (
+      this.timeframeOptions.find((option) => option.label === label) ?? this.timeframeOptions[1]
+    );
   }
 
   private getHistoryExtreme(key: 'high' | 'low', mode: 'max' | 'min'): number | null {
