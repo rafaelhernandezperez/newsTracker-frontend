@@ -24,6 +24,7 @@ const EN = {
   // Top navigation
   'nav.dashboard': 'Dashboard',
   'nav.stockDetail': 'Stock detail',
+  'nav.settings': 'Settings',
   'nav.logout': 'Log out',
   'nav.primaryAria': 'Primary',
 
@@ -82,11 +83,11 @@ const EN = {
   'chart.neutral': 'Neutral',
   'chart.ariaLabel': 'Price history for {company}',
 
-  // Company detail — related news
-  'detail.todaysRelatedNews': 'Today’s related news',
-  'detail.relatedNews': 'Related news',
-  'detail.noRssToday': 'No RSS articles found today.',
-  'detail.noArticlesInRange': 'No articles found for this range.',
+  // Company detail — additional news not already represented on the chart
+  'detail.todaysRelatedNews': 'Today’s additional news',
+  'detail.relatedNews': 'Additional news',
+  'detail.noRssToday': 'No additional RSS articles found today.',
+  'detail.noArticlesInRange': 'No additional articles found for this range.',
 
   // AI importance labels
   'importance.veryImportant': 'Very important',
@@ -114,6 +115,48 @@ const EN = {
   'modal.selectedCount': '{count} companies selected',
   'modal.save': 'Save watchlist',
   'modal.closeAria': 'Close modal',
+
+  // Account and notification settings
+  'settings.eyebrow': 'Settings',
+  'settings.title': 'Account settings',
+  'settings.intro':
+    'Choose which alerts you receive, control delivery on this browser, or manage your session.',
+  'settings.alertsTitle': 'Alert preferences',
+  'settings.alertsDescription': 'Choose the events that should generate a notification.',
+  'settings.deliveryTitle': 'Browser notifications',
+  'settings.deliveryEnabled': 'Delivery is active on this browser.',
+  'settings.deliveryDisabled': 'Delivery is not active on this browser.',
+  'settings.deliveryDisabling': 'Removing this browser from your notification devices…',
+  'settings.enableDelivery': 'Enable on this browser',
+  'settings.disableDelivery': 'Disable on this browser',
+  'settings.deliveryEnabling': 'Enabling…',
+  'settings.deliveryDisablingAction': 'Disabling…',
+  'settings.testDescription':
+    '“Send test push” uses a real recent story and verifies backend → Firebase → this browser.',
+  'settings.sendTest': 'Send test push',
+  'settings.previewAlert': 'Screenshot preview',
+  'settings.testSending': 'Sending the test through Firebase…',
+  'settings.testReceived':
+    'Verified: this browser received the Firebase push and created a persistent notification.',
+  'settings.testSent':
+    'Firebase accepted the test, but this open page did not confirm receipt within eight seconds.',
+  'settings.testNoDevice': 'No registered device was found. Enable browser notifications first.',
+  'settings.testNoNews': 'No stored company story is available yet. Let the news tracker run, then try again.',
+  'settings.testFailed': 'The end-to-end test failed. Check the API connection and try again.',
+  'settings.previewShown':
+    'On-screen simulation ready to capture. It is a visual preview, not proof of Firebase delivery.',
+  'settings.previewFailed':
+    'The preview could not be displayed. Check this site’s browser and operating-system notification permissions.',
+  'settings.previewLabel': 'Local simulation · not delivery proof',
+  'settings.previewNow': 'Now',
+  'settings.previewTitle': 'NVDA: Strong outlook lifts shares',
+  'settings.previewBody':
+    'NVIDIA rises after stronger-than-expected guidance. Open NewsTracker to review the impact.',
+  'settings.accountTitle': 'Account',
+  'settings.signedInAs': 'Signed in as {email}',
+  'settings.save': 'Save settings',
+  'settings.saveFailed': 'Your settings could not be saved. Check your connection and try again.',
+  'settings.closeAria': 'Close settings',
 
   // Generic actions
   'action.cancel': 'Cancel',
@@ -176,6 +219,18 @@ const EN = {
   'alerts.priceMoves': 'Big price moves (>3%)',
   'alerts.highImpact': 'High-impact news',
   'alerts.dailyDigest': 'Daily digest (9am)',
+  'alerts.browserTitle': 'Browser delivery',
+  'alerts.browserDescription': 'Your browser will ask for permission when you finish setup.',
+  'alerts.browserEnabling': 'Waiting for browser permission and registering this device…',
+  'alerts.browserEnabled': 'Notifications are enabled on this device.',
+  'alerts.browserDenied':
+    'Notifications are blocked. Allow them in this site’s browser settings, then try again.',
+  'alerts.browserDismissed': 'The permission prompt was dismissed. Try again when you are ready.',
+  'alerts.browserUnsupported': 'This browser or browsing mode does not support web notifications.',
+  'alerts.browserFailed':
+    'Permission was granted, but this device could not be registered. Check your connection and try again.',
+  'alerts.enableAndFinish': 'Enable notifications & finish',
+  'alerts.continueWithout': 'Continue without browser notifications',
 
   // Currency switcher
   'currency.label': 'Currency',
@@ -199,6 +254,7 @@ const ES: Record<TranslationKey, string> = {
   // Top navigation
   'nav.dashboard': 'Panel',
   'nav.stockDetail': 'Detalle del valor',
+  'nav.settings': 'Ajustes',
   'nav.logout': 'Cerrar sesión',
   'nav.primaryAria': 'Principal',
 
@@ -257,11 +313,11 @@ const ES: Record<TranslationKey, string> = {
   'chart.neutral': 'Neutro',
   'chart.ariaLabel': 'Histórico de cotización de {company}',
 
-  // Company detail — related news
-  'detail.todaysRelatedNews': 'Noticias relacionadas de hoy',
-  'detail.relatedNews': 'Noticias relacionadas',
-  'detail.noRssToday': 'Hoy no se han encontrado artículos RSS.',
-  'detail.noArticlesInRange': 'No se han encontrado artículos en este periodo.',
+  // Company detail — additional news not already represented on the chart
+  'detail.todaysRelatedNews': 'Noticias adicionales de hoy',
+  'detail.relatedNews': 'Noticias adicionales',
+  'detail.noRssToday': 'Hoy no se han encontrado artículos RSS adicionales.',
+  'detail.noArticlesInRange': 'No se han encontrado artículos adicionales en este periodo.',
 
   // AI importance labels
   'importance.veryImportant': 'Muy importante',
@@ -289,6 +345,52 @@ const ES: Record<TranslationKey, string> = {
   'modal.selectedCount': '{count} empresas seleccionadas',
   'modal.save': 'Guardar seguimiento',
   'modal.closeAria': 'Cerrar ventana',
+
+  // Account and notification settings
+  'settings.eyebrow': 'Ajustes',
+  'settings.title': 'Ajustes de la cuenta',
+  'settings.intro':
+    'Elige qué avisos quieres recibir, controla la entrega en este navegador o gestiona tu sesión.',
+  'settings.alertsTitle': 'Preferencias de avisos',
+  'settings.alertsDescription': 'Elige los eventos que deben generar una notificación.',
+  'settings.deliveryTitle': 'Notificaciones del navegador',
+  'settings.deliveryEnabled': 'La entrega está activa en este navegador.',
+  'settings.deliveryDisabled': 'La entrega no está activa en este navegador.',
+  'settings.deliveryDisabling': 'Eliminando este navegador de tus dispositivos de avisos…',
+  'settings.enableDelivery': 'Activar en este navegador',
+  'settings.disableDelivery': 'Desactivar en este navegador',
+  'settings.deliveryEnabling': 'Activando…',
+  'settings.deliveryDisablingAction': 'Desactivando…',
+  'settings.testDescription':
+    '«Enviar push de prueba» usa una noticia real reciente y comprueba servidor → Firebase → este navegador.',
+  'settings.sendTest': 'Enviar push de prueba',
+  'settings.previewAlert': 'Vista para captura',
+  'settings.testSending': 'Enviando la prueba mediante Firebase…',
+  'settings.testReceived':
+    'Verificado: este navegador recibió el push de Firebase y creó una notificación persistente.',
+  'settings.testSent':
+    'Firebase aceptó la prueba, pero esta página abierta no confirmó la recepción en ocho segundos.',
+  'settings.testNoDevice':
+    'No se encontró ningún dispositivo registrado. Activa primero las notificaciones del navegador.',
+  'settings.testNoNews':
+    'Aún no hay noticias de empresas guardadas. Espera a que se ejecute el rastreador y vuelve a intentarlo.',
+  'settings.testFailed':
+    'La prueba de extremo a extremo falló. Comprueba la conexión con la API y vuelve a intentarlo.',
+  'settings.previewShown':
+    'La simulación en pantalla está lista para capturar. Es una muestra visual, no una prueba de entrega de Firebase.',
+  'settings.previewFailed':
+    'No se pudo mostrar la previsualización. Comprueba los permisos de notificaciones del sitio y del sistema operativo.',
+  'settings.previewLabel': 'Simulación local · no prueba la entrega',
+  'settings.previewNow': 'Ahora',
+  'settings.previewTitle': 'NVDA: Las buenas previsiones impulsan la acción',
+  'settings.previewBody':
+    'NVIDIA sube tras publicar previsiones mejores de lo esperado. Abre NewsTracker para revisar el impacto.',
+  'settings.accountTitle': 'Cuenta',
+  'settings.signedInAs': 'Sesión iniciada como {email}',
+  'settings.save': 'Guardar ajustes',
+  'settings.saveFailed':
+    'No se pudieron guardar los ajustes. Comprueba la conexión y vuelve a intentarlo.',
+  'settings.closeAria': 'Cerrar ajustes',
 
   // Generic actions
   'action.cancel': 'Cancelar',
@@ -351,6 +453,19 @@ const ES: Record<TranslationKey, string> = {
   'alerts.priceMoves': 'Movimientos fuertes de precio (>3 %)',
   'alerts.highImpact': 'Noticias de alto impacto',
   'alerts.dailyDigest': 'Resumen diario (9:00)',
+  'alerts.browserTitle': 'Avisos del navegador',
+  'alerts.browserDescription': 'Tu navegador te pedirá permiso cuando termines la configuración.',
+  'alerts.browserEnabling': 'Esperando el permiso del navegador y registrando este dispositivo…',
+  'alerts.browserEnabled': 'Las notificaciones están activadas en este dispositivo.',
+  'alerts.browserDenied':
+    'Las notificaciones están bloqueadas. Permítelas en los ajustes del sitio del navegador y vuelve a intentarlo.',
+  'alerts.browserDismissed':
+    'Has cerrado la solicitud de permiso. Vuelve a intentarlo cuando quieras.',
+  'alerts.browserUnsupported': 'Este navegador o modo de navegación no admite notificaciones web.',
+  'alerts.browserFailed':
+    'El permiso se concedió, pero no se pudo registrar el dispositivo. Comprueba la conexión y vuelve a intentarlo.',
+  'alerts.enableAndFinish': 'Activar avisos y terminar',
+  'alerts.continueWithout': 'Continuar sin avisos del navegador',
 
   // Currency switcher
   'currency.label': 'Moneda',
