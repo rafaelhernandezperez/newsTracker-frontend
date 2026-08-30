@@ -12,7 +12,7 @@ import { PushService } from './core/services/push.service';
 export class App {
   private readonly auth = inject(AuthService);
   private readonly push = inject(PushService);
-  private pushRefreshed = false;
+  private refreshedPushUid: string | null = null;
 
   constructor() {
     // Returning session: re-register the FCM device token once auth resolves.
@@ -21,8 +21,13 @@ export class App {
     // No permission prompt: refreshIfGranted() is a no-op unless the user
     // already granted notifications.
     effect(() => {
-      if (this.auth.ready() && this.auth.user() && !this.pushRefreshed) {
-        this.pushRefreshed = true;
+      const uid = this.auth.user()?.uid ?? null;
+      if (!uid) {
+        this.refreshedPushUid = null;
+        return;
+      }
+      if (this.auth.ready() && this.refreshedPushUid !== uid) {
+        this.refreshedPushUid = uid;
         void this.push.refreshIfGranted();
       }
     });
