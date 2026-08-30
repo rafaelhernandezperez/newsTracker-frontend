@@ -1,0 +1,193 @@
+<div class="settings-overlay" (click)="close.emit()">
+  @if (previewVisible()) {
+    <aside
+      class="notification-preview"
+      role="status"
+      aria-live="polite"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="notification-preview-icon" aria-hidden="true">NT</div>
+      <div class="notification-preview-content">
+        <div class="notification-preview-meta">
+          <span>{{ i18n.t('settings.previewLabel') }}</span>
+          <span>{{ i18n.t('settings.previewNow') }}</span>
+        </div>
+        <p class="notification-preview-title">{{ i18n.t('settings.previewTitle') }}</p>
+        <p class="notification-preview-body">{{ i18n.t('settings.previewBody') }}</p>
+      </div>
+      <button
+        type="button"
+        class="notification-preview-close"
+        [attr.aria-label]="i18n.t('action.close')"
+        (click)="previewVisible.set(false)"
+      >
+        <span aria-hidden="true">&#215;</span>
+      </button>
+    </aside>
+  }
+
+  <section
+    class="settings-sheet"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="settings-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="settings-bar">
+      <p class="settings-eyebrow">{{ i18n.t('settings.eyebrow') }}</p>
+      <button
+        type="button"
+        class="settings-close"
+        [attr.aria-label]="i18n.t('settings.closeAria')"
+        (click)="close.emit()"
+      >
+        <span aria-hidden="true">&#215;</span>
+      </button>
+    </header>
+
+    <div class="settings-body">
+      <h2 id="settings-title" class="settings-title">{{ i18n.t('settings.title') }}</h2>
+      <p class="settings-intro">{{ i18n.t('settings.intro') }}</p>
+
+      <section class="settings-section" aria-labelledby="settings-alerts-title">
+        <div class="settings-section-head">
+          <div>
+            <h3 id="settings-alerts-title" class="settings-section-title">
+              {{ i18n.t('settings.alertsTitle') }}
+            </h3>
+            <p class="settings-section-copy">{{ i18n.t('settings.alertsDescription') }}</p>
+          </div>
+        </div>
+
+        <div class="settings-options">
+          @for (option of alertOptions; track option.id) {
+            <button
+              type="button"
+              class="settings-option"
+              [class.is-on]="alertPrefs()[option.id]"
+              [attr.aria-pressed]="alertPrefs()[option.id]"
+              (click)="toggleAlert(option.id)"
+            >
+              <span>{{ i18n.t(option.labelKey) }}</span>
+              <span class="settings-mark" aria-hidden="true"></span>
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby="settings-delivery-title">
+        <div class="settings-delivery">
+          <div>
+            <h3 id="settings-delivery-title" class="settings-section-title">
+              {{ i18n.t('settings.deliveryTitle') }}
+            </h3>
+            <p class="settings-section-copy" role="status" aria-live="polite">
+              {{ pushStatusMessage() }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="settings-secondary"
+            [disabled]="
+              pushState() === 'enabling' ||
+              pushState() === 'disabling' ||
+              pushState() === 'unsupported'
+            "
+            (click)="toggleBrowserDelivery()"
+          >
+            @switch (pushState()) {
+              @case ('enabled') {
+                {{ i18n.t('settings.disableDelivery') }}
+              }
+              @case ('enabling') {
+                {{ i18n.t('settings.deliveryEnabling') }}
+              }
+              @case ('disabling') {
+                {{ i18n.t('settings.deliveryDisablingAction') }}
+              }
+              @default {
+                {{ i18n.t('settings.enableDelivery') }}
+              }
+            }
+          </button>
+        </div>
+
+        <div class="settings-test">
+          <p class="settings-test-copy">{{ i18n.t('settings.testDescription') }}</p>
+          <div class="settings-test-actions">
+            <button
+              type="button"
+              class="settings-secondary"
+              [disabled]="pushState() !== 'enabled' || testNotificationState() === 'sending'"
+              (click)="sendTestNotification()"
+            >
+              {{ i18n.t('settings.sendTest') }}
+            </button>
+            <button
+              type="button"
+              class="settings-secondary"
+              [disabled]="testNotificationState() === 'sending'"
+              (click)="showNotificationPreview()"
+            >
+              {{ i18n.t('settings.previewAlert') }}
+            </button>
+          </div>
+          @if (testNotificationMessage(); as message) {
+            <p
+              class="settings-test-result"
+              [class.is-error]="
+                testNotificationState() === 'failed' ||
+                testNotificationState() === 'no-device' ||
+                testNotificationState() === 'no-news' ||
+                testNotificationState() === 'preview-failed'
+              "
+              role="status"
+              aria-live="polite"
+            >
+              {{ message }}
+            </p>
+          }
+        </div>
+      </section>
+
+      <section class="settings-section settings-account" aria-labelledby="settings-account-title">
+        <div>
+          <h3 id="settings-account-title" class="settings-section-title">
+            {{ i18n.t('settings.accountTitle') }}
+          </h3>
+          @if (user()?.email; as email) {
+            <p class="settings-section-copy">
+              {{ i18n.t('settings.signedInAs', { email }) }}
+            </p>
+          }
+        </div>
+
+        <button type="button" class="settings-logout" [disabled]="logoutBusy()" (click)="logout()">
+          {{ logoutBusy() ? i18n.t('login.pleaseWait') : i18n.t('nav.logout') }}
+        </button>
+      </section>
+
+      @if (saveState() === 'failed') {
+        <p class="settings-error" role="alert">{{ i18n.t('settings.saveFailed') }}</p>
+      }
+    </div>
+
+    <footer class="settings-foot">
+      <button type="button" class="settings-cancel" (click)="close.emit()">
+        {{ i18n.t('action.cancel') }}
+      </button>
+      <button
+        type="button"
+        class="settings-save"
+        [disabled]="saveState() === 'saving' || logoutBusy()"
+        (click)="save()"
+      >
+        <span>
+          {{ saveState() === 'saving' ? i18n.t('login.pleaseWait') : i18n.t('settings.save') }}
+        </span>
+        <span aria-hidden="true">&#8594;</span>
+      </button>
+    </footer>
+  </section>
+</div>
