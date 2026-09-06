@@ -3,35 +3,25 @@ import { Company } from '../models/company.model';
 import { COMPANIES } from '../data/companies.data';
 import { AuthService } from './auth.service';
 
-/** Legacy global keys (pre account-namespacing). Migrated to the first uid that logs in. */
 const LEGACY_COMPANIES_KEY = 'nt.companies';
-/** Pre-search versions stored only ticker symbols; migrated on first read. */
+
 const LEGACY_TICKERS_KEY = 'nt.tickers';
 
-/** What we persist per followed company (enough to render + query news well). */
 export type StoredCompany = Pick<Company, 'symbol' | 'name' | 'sector'>;
 
-/** Alert channels chosen in onboarding step 3. Mirrors the backend AlertPrefs. */
 export type AlertPrefs = {
   priceMoves: boolean;
   highImpact: boolean;
   dailyDigest: boolean;
 };
 
-/** Matches the backend default: users who never chose get every alert. */
+/** Keep defaults aligned with the backend alert preferences. */
 export const DEFAULT_ALERT_PREFS: AlertPrefs = {
   priceMoves: true,
   highImpact: true,
   dailyDigest: true,
 };
 
-/**
- * Single source of truth for the companies and alert preferences the user
- * selected during onboarding (or later edited from the watchlist). Persisted
- * to localStorage, namespaced by Firebase uid so accounts sharing a browser
- * don't share watchlists, and exposed as signals so views stay in sync.
- * Re-hydrates whenever the signed-in user changes (login/logout).
- */
 @Injectable({ providedIn: 'root' })
 export class UserPreferencesService {
   private readonly auth = inject(AuthService);
@@ -39,12 +29,11 @@ export class UserPreferencesService {
   private uid: string | null = this.auth.user()?.uid ?? null;
 
   readonly companies = signal<StoredCompany[]>(this.readCompanies());
-  /** Symbols of the followed companies, derived from `companies`. */
+
   readonly tickers = computed(() => this.companies().map((company) => company.symbol));
   readonly alertPrefs = signal<AlertPrefs>(this.readAlertPrefs());
 
   constructor() {
-    // Re-hydrate from the (namespaced) storage whenever the account changes.
     effect(() => {
       const uid = this.auth.user()?.uid ?? null;
       if (uid === this.uid) {
@@ -86,13 +75,22 @@ export class UserPreferencesService {
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<AlertPrefs>;
         return {
-          priceMoves: typeof parsed.priceMoves === 'boolean' ? parsed.priceMoves : DEFAULT_ALERT_PREFS.priceMoves,
-          highImpact: typeof parsed.highImpact === 'boolean' ? parsed.highImpact : DEFAULT_ALERT_PREFS.highImpact,
-          dailyDigest: typeof parsed.dailyDigest === 'boolean' ? parsed.dailyDigest : DEFAULT_ALERT_PREFS.dailyDigest,
+          priceMoves:
+            typeof parsed.priceMoves === 'boolean'
+              ? parsed.priceMoves
+              : DEFAULT_ALERT_PREFS.priceMoves,
+          highImpact:
+            typeof parsed.highImpact === 'boolean'
+              ? parsed.highImpact
+              : DEFAULT_ALERT_PREFS.highImpact,
+          dailyDigest:
+            typeof parsed.dailyDigest === 'boolean'
+              ? parsed.dailyDigest
+              : DEFAULT_ALERT_PREFS.dailyDigest,
         };
       }
     } catch {
-      // fall through to defaults
+      // Ignore unavailable or invalid stored preferences.
     }
     return { ...DEFAULT_ALERT_PREFS };
   }
@@ -120,7 +118,9 @@ export class UserPreferencesService {
           return this.cleanCompanies(
             parsed.filter(
               (value): value is StoredCompany =>
-                Boolean(value) && typeof value === 'object' && typeof (value as StoredCompany).symbol === 'string',
+                Boolean(value) &&
+                typeof value === 'object' &&
+                typeof (value as StoredCompany).symbol === 'string',
             ),
           );
         }
@@ -140,17 +140,12 @@ export class UserPreferencesService {
         return migrated;
       }
     } catch {
-      // fall through to empty
+      // Ignore unavailable or invalid stored preferences.
     }
     return [];
   }
 
-  /**
-   * One-time move of the legacy global companies key to the current account's
-   * namespace, so the first user to sign in on this browser keeps their
-   * selection and any later account starts clean. Returns the migrated raw
-   * value, if any.
-   */
+  /** Move global preferences to the first account that signs in on this browser. */
   private migrateLegacy(): string | null {
     if (!this.uid) {
       return null;
@@ -191,7 +186,7 @@ export class UserPreferencesService {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      // Storage may be unavailable (private mode, quota); selection still lives in-memory.
+      // Keep the in-memory preference when storage is unavailable.
     }
   }
 }

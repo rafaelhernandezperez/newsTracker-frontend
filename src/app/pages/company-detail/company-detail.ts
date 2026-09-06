@@ -1,5 +1,4 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectorRef,
@@ -55,7 +54,7 @@ import {
 import { CurrencyService } from '../../core/services/currency.service';
 import { LanguageService } from '../../core/services/language.service';
 import { MarketDataService } from '../../core/services/market-data.service';
-import { NewsImportance, NewsItem, NewsSentiment } from '../../core/models/news.model';
+import { NewsImportance, NewsItem } from '../../core/models/news.model';
 import { NewsDataService } from '../../core/services/news-data.service';
 import { UserPreferencesService } from '../../core/services/user-preferences.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
@@ -64,28 +63,17 @@ import { CurrencyToggleComponent } from '../../shared/components/currency-toggle
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 import { SettingsModalComponent } from '../../shared/components/settings-modal/settings-modal';
 
-/**
- * The chart can't read CSS variables, so the two market colours are mirrored
- * here as raw channels. Keep them in step with --nt-quote-up / --nt-quote-down
- * in styles.css: the line, its markers and the watchlist must agree.
- */
+/** Keep these chart colors in sync with --nt-quote-up and --nt-quote-down in styles.css. */
 const QUOTE_UP = '53, 224, 141';
 const QUOTE_DOWN = '255, 87, 87';
-/** Keep the feed useful without turning long timeframes into an endless list. */
-const ADDITIONAL_NEWS_DISPLAY_LIMIT = 12;
 
-type NavItem = {
-  labelKey: TranslationKey;
-  link: string | any[];
-  active?: boolean;
-};
+const ADDITIONAL_NEWS_DISPLAY_LIMIT = 12;
 
 type WatchlistRow = {
   symbol: string;
   name?: string;
   change: string;
   direction: 'positive' | 'negative' | 'neutral';
-  sector?: string;
 };
 
 type StatCard = {
@@ -100,14 +88,10 @@ type RelatedNewsItem = {
   title: string;
   summary: string;
   link?: string;
-  publishedAt?: string;
   dateKey?: string;
   tags: string[];
   accent: 'positive' | 'negative' | 'neutral';
   importance?: NewsImportance;
-  sentiment?: NewsSentiment;
-  /** Language of the ORIGINAL article — shown as a tag, never used to pick copy. */
-  language?: string;
 };
 
 type TimeframeOption = {
@@ -115,7 +99,6 @@ type TimeframeOption = {
   days: number;
 };
 
-/** Combined market + news payload for one timeframe selection. */
 type TimeframeData = {
   market: { response: MarketResponse | null; error: string | null };
   chartNews: RelatedNewsItem[];
@@ -130,9 +113,7 @@ type ChosenChartNews = {
 
 @Component({
   selector: 'app-company-detail',
-  standalone: true,
   imports: [
-    CommonModule,
     RouterLink,
     CompanySelectorModalComponent,
     CurrencyToggleComponent,
@@ -153,20 +134,20 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   readonly i18n = inject(LanguageService);
   readonly currencyService = inject(CurrencyService);
   private readonly watchlist = inject(WatchlistService);
-  /** Language the news on screen was fetched in; drives the refetch below. */
+
   private loadedLanguage = this.i18n.language();
-  /** Current ticker; follows the route param so in-page navigation reloads data. */
+
   private symbol = this.route.snapshot.paramMap.get('symbol');
-  /** Timeframe selections; switchMap cancels the in-flight requests on a new pick. */
+
   private readonly timeframe$ = new Subject<TimeframeOption>();
-  /** Low-priority requests warming the service caches for likely next ranges. */
+
   private readonly prefetchSubscriptions = new Map<TimeframeOption['label'], Subscription>();
 
   @ViewChild('chartContainer') private chartContainer?: ElementRef<HTMLDivElement>;
   private chart?: IChartApi;
   private series?: ISeriesApi<'Area'>;
   private markersPlugin?: ISeriesMarkersPluginApi<Time>;
-  /** Maps a chart time (yyyy-mm-dd) to the news item behind its marker, for click handling. */
+
   private markerLookup = new Map<string, RelatedNewsItem>();
 
   readonly timeframeOptions: TimeframeOption[] = [
@@ -177,20 +158,12 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   ];
   activeTimeframe: TimeframeOption['label'] = '5D';
   isWatchlistOpen = false;
-  /** The watchlist editor, opened from "Manage" without leaving this page. */
+
   isManageOpen = false;
   isSettingsOpen = false;
   readonly availableCompanies: Company[] = COMPANIES;
-  /** Selection handed to the editor; snapshotted when it opens. */
-  managedCompanies: Company[] = [];
-  get navItems(): NavItem[] {
-    const detailRoute = this.symbol ? `/portfolio/${this.symbol}` : '/portfolio';
 
-    return [
-      { labelKey: 'nav.dashboard', link: '/portfolio' },
-      { labelKey: 'nav.stockDetail', link: detailRoute, active: true },
-    ];
-  }
+  managedCompanies: Company[] = [];
 
   company = this.findCompany(this.symbol);
 
@@ -200,21 +173,18 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   hasChartData = false;
   isLoading = true;
   errorMessage = '';
-  /** Dated stories used exclusively for markers across the selected chart range. */
+
   chartNewsItems: RelatedNewsItem[] = [];
-  /** Stories rendered in the Related News section below the chart. */
+
   relatedNewsItems: RelatedNewsItem[] = [];
   selectedNewsItem: RelatedNewsItem | null = null;
-  /** When the current market snapshot was received (for the "Updated ..." label). */
+
   lastUpdatedAt: Date | null = null;
 
   watchlistRows: WatchlistRow[] = [];
 
   constructor() {
-    // AI headlines and summaries are generated server-side in the requested
-    // language, so switching language has to re-run the news requests for the
-    // current timeframe. Initialized to the current language, so the first run
-    // here never duplicates the initial load.
+    // Refetch server-generated news when the language changes.
     effect(() => {
       const language = this.i18n.language();
 
@@ -223,9 +193,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       }
 
       this.loadedLanguage = language;
-      // The open article popup holds a copy of the previous language's text and
-      // its item is about to be replaced, so dismiss it rather than leave stale
-      // copy on screen.
+      // Close the article before replacing its text with the newly selected language.
       this.selectedNewsItem = null;
 
       if (this.symbol) {
@@ -235,9 +203,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       }
     });
 
-    // The series is plotted in the display currency, so a currency switch (or
-    // the FX rate arriving) has to redraw it. Prices in the header and stat
-    // cards are getters, which Angular re-evaluates on its own.
+    // Redraw converted prices when the display currency or exchange rate changes.
     effect(() => {
       this.currencyService.currency();
       this.currencyService.hasRate();
@@ -256,9 +222,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       )
       .subscribe((data) => this.applyTimeframeData(data));
 
-    // Navigating to another company from this page (watchlist links) reuses
-    // this component instance, so follow the route param instead of reading it
-    // once: each new symbol resets the view and reloads market + news data.
+    // Route changes reuse this component, so reload when the symbol changes.
     this.route.paramMap
       .pipe(
         map((params) => params.get('symbol')),
@@ -281,7 +245,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return;
     }
 
-    // Clear the previous company's data so it doesn't linger under the loader.
     this.quote = null;
     this.chartData = [];
     this.history = [];
@@ -290,7 +253,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.selectedNewsItem = null;
     this.lastUpdatedAt = null;
     this.errorMessage = '';
-    // On mobile the watchlist is a drawer; close it after picking a company.
     this.isWatchlistOpen = false;
     this.buildChart();
 
@@ -324,18 +286,16 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
   private mapWatchlistRow(symbol: string, quote: MarketQuote | null): WatchlistRow {
     const company = this.findCompany(symbol);
     const name = company?.name;
-    const sector = company?.sector;
 
-    // Em-dash when the quote is missing or the backend reported no change.
     if (!quote || quote.change == null) {
-      return { symbol, name, change: '—', direction: 'neutral', sector };
+      return { symbol, name, change: '—', direction: 'neutral' };
     }
 
     const change = quote.change;
     const direction = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
     const sign = change > 0 ? '+' : '';
 
-    return { symbol, name, change: `${sign}${change.toFixed(1)}%`, direction, sector };
+    return { symbol, name, change: `${sign}${change.toFixed(1)}%`, direction };
   }
 
   toggleWatchlist(): void {
@@ -362,7 +322,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.isSettingsOpen = false;
   }
 
-  /** Companies currently followed, enriched from the catalogue when curated. */
   private followedCompanies(): Company[] {
     return this.preferences
       .companies()
@@ -372,7 +331,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       );
   }
 
-  /** Save the edited selection and refresh the sidebar in place. */
   saveManagedCompanies(companies: Company[]): void {
     void this.watchlist.save(companies);
     this.closeManage();
@@ -405,11 +363,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.prefetchNextTimeframe(timeframe.label);
   }
 
-  /**
-   * Warm the exact service-cache keys the next likely selection will use.
-   * A short delay gives the visible range priority; if the user clicks early,
-   * their foreground subscription joins the same shared HTTP observables.
-   */
+  /** Delay prefetching so the visible timeframe takes priority. */
   private prefetchNextTimeframe(current: TimeframeOption['label']): void {
     const nextLabel = current === '5D' ? '1M' : current === '1M' ? '3M' : null;
     if (!nextLabel || !this.symbol || this.prefetchSubscriptions.has(nextLabel)) {
@@ -521,11 +475,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return this.quote?.change != null && this.quote.change < 0 ? 'negative' : 'positive';
   }
 
-  /**
-   * Fire the market and news requests for one timeframe together. Consumed via
-   * switchMap so a newer selection cancels both in-flight requests, and
-   * `buildChart` runs exactly once per timeframe with both results in hand.
-   */
   private fetchTimeframeData(timeframe: TimeframeOption): Observable<TimeframeData> {
     const symbol = this.symbol as string;
 
@@ -540,16 +489,12 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         console.error('[company-detail] Market request failed:', error);
         return of({ response: null, error: this.getMarketErrorMessage(error) });
       }),
-      // Market data is normally much faster than AI-localized news. Apply it
-      // immediately so prices, stats, and the chart render without waiting for
-      // every translation request in the forkJoin below.
+      // Render market data without waiting for news translation.
       tap((market) => this.applyMarketData(market)),
     );
 
     const chartNews$ = this.newsDataService
       .getCompanyNews(symbol, this.company?.name, {
-        // Scale with the window so longer timeframes get more dated markers
-        // spread across the chart (the marker layer dedupes by day).
         limit: this.newsLimitForTimeframe(timeframe.days),
         range: timeframe.label,
         daysBack: timeframe.days,
@@ -559,15 +504,12 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
         catchError(() => of([] as RelatedNewsItem[])),
       );
 
-    // The compact 5D chart still needs dated marker coverage across its full
-    // range, but the list below it is intentionally a live "today" feed.
-    // Longer views use their full ranged response for both chart and list.
+    // The 5D list shows today’s news; longer timeframes share the chart’s full range.
     const relatedNews$ =
       timeframe.label === '5D'
         ? this.newsDataService
             .getCompanyNews(symbol, this.company?.name, {
-              // Fetch a few more than we display because today's chart marker
-              // may be removed from this feed as a duplicate.
+              // Allow extra candidates because chart stories are excluded from this list.
               limit: ADDITIONAL_NEWS_DISPLAY_LIMIT + 4,
               from: this.localTodayDateKey(),
               rssOnly: true,
@@ -581,7 +523,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return forkJoin({ market: market$, chartNews: chartNews$, relatedNews: relatedNews$ });
   }
 
-  /** Apply the fast market payload independently of slower localized news. */
   private applyMarketData(market: TimeframeData['market']): void {
     this.isLoading = false;
 
@@ -604,11 +545,8 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.changeDetectorRef.markForCheck();
   }
 
-  /** Add news and chart markers when localization finishes. */
   private applyTimeframeData({ chartNews, relatedNews }: TimeframeData): void {
     this.chartNewsItems = chartNews;
-    // The feed complements the chart: once the most important story for each
-    // chart day has been selected, don't repeat those stories below it.
     this.relatedNewsItems = this.excludeChartNews(relatedNews);
     this.buildChart();
     this.changeDetectorRef.markForCheck();
@@ -627,7 +565,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.chart = undefined;
   }
 
-  /** Create the TradingView Lightweight Charts instance once the container exists. */
   private createChart(): void {
     const container = this.chartContainer?.nativeElement;
 
@@ -635,8 +572,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return;
     }
 
-    // Charted in the same hairlines and greys as the rest of the page, so the
-    // plot reads as part of the grid rather than an embedded widget.
     this.chart = createChart(container, {
       autoSize: true,
       layout: {
@@ -670,8 +605,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     this.markersPlugin = createSeriesMarkers(this.series, []);
 
-    // Markers aren't directly clickable, so resolve the clicked time back to the
-    // news item behind the marker at that point and open the detail modal.
+    // Resolve chart clicks to the news marker at the selected time.
     this.chart.subscribeClick((param) => {
       if (param.time === undefined) {
         return;
@@ -690,7 +624,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     });
   }
 
-  /** Push the latest price series + news markers into the chart. */
   private buildChart(): void {
     this.hasChartData = this.chartData.length >= 2;
 
@@ -707,8 +640,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 
     const seriesData = this.getChartSeriesData();
 
-    // Green when the range closed above where it opened, red when it didn't —
-    // the line answers the question before the axis does.
     const first = seriesData[0]?.value ?? 0;
     const last = seriesData[seriesData.length - 1]?.value ?? 0;
     this.series.applyOptions(this.seriesColors(last < first ? QUOTE_DOWN : QUOTE_UP));
@@ -718,7 +649,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     this.chart?.timeScale().fitContent();
   }
 
-  /** Line plus its fade, from one colour. */
   private seriesColors(rgb: string) {
     return {
       lineColor: `rgb(${rgb})`,
@@ -727,15 +657,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     };
   }
 
-  /**
-   * Place a circle on the price line at each article's actual publish date.
-   * IMPORTANCIA drives the circle size; SENTIMIENTO drives its color. When more
-   * than one article lands on the same chart day, the most important one wins.
-   *
-   * Note: the free news feed only returns recent headlines, so until a
-   * historical news source is wired up, markers naturally cluster on the latest
-   * points (that's where the dated news actually is).
-   */
   private buildNewsMarkers(data: { time: string; value: number }[]): SeriesMarker<Time>[] {
     this.markerLookup.clear();
 
@@ -750,15 +671,13 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([time, { item, value }]) => {
         this.markerLookup.set(time, item);
-        const sentiment = this.getMarkerSentiment(item);
 
         return {
           time,
-          // Sit exactly on the line at this point's price.
           position: 'atPriceMiddle',
           price: value,
           shape: 'circle',
-          color: this.sentimentColor(sentiment),
+          color: this.sentimentColor(item.accent),
           size: this.importanceSize(item.importance),
         } satisfies SeriesMarker<Time>;
       });
@@ -772,14 +691,12 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return chosen;
     }
 
-    // Snap each article to the nearest chart point by its real publish date.
     for (const item of this.chartNewsItems) {
       if (!item.dateKey) {
         continue;
       }
 
-      // Allow a few days of slack so weekend/holiday news still lands on a
-      // trading day, but never on a date the chart doesn't actually show.
+      // Map weekend and holiday stories to a trading day within four days.
       const index = this.nearestIndex(data, item.dateKey, 4);
       if (index < 0) {
         continue;
@@ -796,7 +713,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return chosen;
   }
 
-  /** Stories below the chart must add information, not duplicate its markers. */
   private excludeChartNews(items: RelatedNewsItem[]): RelatedNewsItem[] {
     const represented = new Set<string>();
 
@@ -811,7 +727,7 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       .slice(0, ADDITIONAL_NEWS_DISPLAY_LIMIT);
   }
 
-  /** IDs normally match across API queries; the URL covers feeds that regenerate IDs. */
+  /** Match by URL as well as ID because some feeds regenerate article IDs. */
   private newsIdentityKeys(item: RelatedNewsItem): string[] {
     const keys = [`id:${item.id}`];
     const link = item.link?.trim().replace(/\/+$/, '');
@@ -823,7 +739,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return keys;
   }
 
-  /** Build the unique, ascending timeline shared by the chart and news selection. */
   private getChartSeriesData(): { time: string; value: number }[] {
     const currency = this.quotedCurrency;
 
@@ -920,8 +835,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       return 16;
     }
     if (days <= 30) {
-      // Roughly one story for each trading day plus enough candidates to
-      // populate the additional-news feed after chart stories are excluded.
       return 40;
     }
     if (days <= 90) {
@@ -930,7 +843,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return 120;
   }
 
-  /** Current local calendar day in the API's yyyy-mm-dd query format. */
   private localTodayDateKey(): string {
     const today = new Date();
     const year = today.getFullYear();
@@ -957,7 +869,6 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return mode === 'max' ? Math.max(...values) : Math.min(...values);
   }
 
-  /** Resolve a symbol via the curated catalogue, then the user's saved companies. */
   private findCompany(symbol: string | null): Company | null {
     if (!symbol) {
       return null;
@@ -966,20 +877,11 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     const upper = symbol.toUpperCase();
     return (
       COMPANIES.find((item) => item.symbol === upper) ??
-      this.preferences.companies().find((item) => item.symbol === upper) ??
-      this.createFallbackCompany(upper)
+      this.preferences.companies().find((item) => item.symbol === upper) ?? {
+        symbol: upper,
+        name: upper,
+      }
     );
-  }
-
-  private createFallbackCompany(symbol: string | null): Company | null {
-    if (!symbol) {
-      return null;
-    }
-
-    return {
-      symbol: symbol.toUpperCase(),
-      name: symbol.toUpperCase(),
-    };
   }
 
   private getMarketErrorMessage(error: unknown): string {
@@ -1008,49 +910,19 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
       title: newsHeadline(item),
       summary: newsSummary(item, this.i18n.language()),
       link: item.link,
-      publishedAt,
       dateKey: this.toDateKey(publishedAt),
       tags: this.buildNewsTags(item),
       accent: this.getNewsAccent(item),
       importance: item.importance,
-      sentiment: item.sentiment,
-      language: item.language,
     };
   }
 
-  private getMarkerSentiment(item: RelatedNewsItem): 'positive' | 'neutral' | 'negative' {
-    // Prefer the AI sentiment; fall back to the news-list accent if it's missing.
-    if (item.sentiment === 'POSITIVO') {
-      return 'positive';
-    }
-
-    if (item.sentiment === 'NEGATIVO') {
-      return 'negative';
-    }
-
-    if (item.sentiment === 'NEUTRO') {
-      return 'neutral';
-    }
-
-    if (item.accent === 'positive') {
-      return 'positive';
-    }
-
-    if (item.accent === 'negative') {
-      return 'negative';
-    }
-
-    return 'neutral';
-  }
-
   private buildNewsTags(item: NewsItem): string[] {
-    const tags = [
+    return [
       item.language?.toUpperCase(),
       item.matchedTickers[0],
       this.importanceLabel(item.importance),
     ].filter((value): value is string => Boolean(value));
-
-    return tags.length ? tags.slice(0, 3) : [this.i18n.t('news.tagHeadline')];
   }
 
   private importanceLabel(importance?: NewsImportance): string {
@@ -1094,17 +966,11 @@ export class CompanyDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     return date.toISOString().slice(0, 10);
   }
 
-  /** Currency the backend quoted this company in. */
   private get quotedCurrency(): string {
     return this.quote?.currency ?? (this.company?.sector === 'Banca' ? 'EUR' : 'USD');
   }
 
-  /**
-   * True when prices are shown in their listing currency instead of the selected
-   * one — no FX rate available, or a listing currency with no rate here (GBP,
-   * JPY, ...). Suppressed while the rate is still loading, so a normal page load
-   * doesn't flash a warning that resolves a moment later.
-   */
+  /** Show the native-currency fallback only after the rate request finishes. */
   get showsQuotedCurrencyNote(): boolean {
     if (this.currencyService.isRateLoading()) {
       return false;

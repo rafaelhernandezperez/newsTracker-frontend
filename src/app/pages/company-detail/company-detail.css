@@ -1,11 +1,3 @@
-/* ------------------------------------------------------------------ */
-/* Company detail — the dashboard grid, one level deeper.              */
-/*                                                                     */
-/* Same ruled top bar and two columns; the difference is that the      */
-/* content is numeric, so the page is built as bands: identity, then   */
-/* the chart, then the session figures, then the stories that moved    */
-/* them. Rules do all the separating — no cards anywhere.              */
-/* ------------------------------------------------------------------ */
 :host {
   display: block;
 }
@@ -20,9 +12,6 @@
   font-family: var(--nt-font-sans);
 }
 
-/* ---------------------------------------------------------------- */
-/* Top bar                                                           */
-/* ---------------------------------------------------------------- */
 .terminal-bar {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -38,7 +27,9 @@
   font-size: 1.15rem;
   line-height: 1;
   text-decoration: none;
-  transition: transform 180ms ease, opacity 180ms ease;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
 }
 
 .terminal-back:hover {
@@ -80,7 +71,6 @@
   color: #fff;
 }
 
-/* The shared switchers, stripped to plain letters like everywhere else. */
 :host ::ng-deep .terminal-language .nt-segmented,
 :host ::ng-deep .terminal-currency .nt-segmented {
   gap: 0.35rem;
@@ -112,9 +102,6 @@
   color: #fff;
 }
 
-/* ---------------------------------------------------------------- */
-/* Columns                                                           */
-/* ---------------------------------------------------------------- */
 .terminal-body {
   display: grid;
   grid-template-columns: minmax(13rem, 20rem) minmax(0, 1fr);
@@ -144,7 +131,9 @@
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: color 180ms ease, border-color 180ms ease;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .link-action:hover {
@@ -152,9 +141,6 @@
   color: #fff;
 }
 
-/* ---------------------------------------------------------------- */
-/* Rail — the same watchlist, with this company marked                */
-/* ---------------------------------------------------------------- */
 .rail {
   position: sticky;
   top: 3.6rem;
@@ -236,16 +222,12 @@
   font-size: 0.72rem;
 }
 
-/* ---------------------------------------------------------------- */
-/* Detail column                                                     */
-/* ---------------------------------------------------------------- */
 .detail {
   border-left: 1px solid var(--nt-rule);
   min-height: calc(100dvh - 3.6rem);
   padding: clamp(1.75rem, 4vh, 2.5rem) var(--gutter) 4rem;
 }
 
-/* Only surfaces on narrow screens, where the rail collapses. */
 .rail-trigger {
   display: none;
   margin-bottom: 1.5rem;
@@ -273,7 +255,6 @@
   letter-spacing: 0.01em;
 }
 
-/* No pill: the number carries the colour, the way the board does. */
 .quote-change {
   display: inline-flex;
   align-items: baseline;
@@ -311,9 +292,6 @@
   opacity: 0.5;
 }
 
-/* ---------------------------------------------------------------- */
-/* Chart band                                                        */
-/* ---------------------------------------------------------------- */
 .chart-bar {
   display: flex;
   flex-wrap: wrap;
@@ -341,7 +319,9 @@
   font-size: 0.68rem;
   letter-spacing: 0.18em;
   cursor: pointer;
-  transition: color 180ms ease, border-color 180ms ease;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .range-tab:hover {
@@ -429,9 +409,6 @@
   background: var(--nt-quote-down);
 }
 
-/* ---------------------------------------------------------------- */
-/* Session figures — a data strip, not eight little cards.           */
-/* ---------------------------------------------------------------- */
 .stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -460,9 +437,6 @@
   letter-spacing: 0.01em;
 }
 
-/* ---------------------------------------------------------------- */
-/* Related stories — the dashboard's index, reused                   */
-/* ---------------------------------------------------------------- */
 .feed {
   margin-top: clamp(2rem, 5vh, 3rem);
 }
@@ -524,7 +498,6 @@
   text-transform: uppercase;
 }
 
-/* The marker colour from the chart, repeated on the story it belongs to. */
 .story-sentiment {
   width: 0.4rem;
   height: 0.4rem;
@@ -592,9 +565,6 @@
   grid-template-columns: 1fr;
 }
 
-/* ---------------------------------------------------------------- */
-/* Article sheet — same object as the watchlist editor              */
-/* ---------------------------------------------------------------- */
 .overlay {
   position: fixed;
   inset: 0;
@@ -668,9 +638,6 @@
   padding: 1rem clamp(1.1rem, 3vw, 1.75rem);
 }
 
-/* ---------------------------------------------------------------- */
-/* Missing company                                                   */
-/* ---------------------------------------------------------------- */
 .missing {
   display: flex;
   min-height: calc(100dvh - 3.6rem);
@@ -714,15 +681,11 @@
   }
 }
 
-/* ---------------------------------------------------------------- */
-/* Narrow                                                            */
-/* ---------------------------------------------------------------- */
 @media (max-width: 900px) {
   .terminal-body {
     grid-template-columns: 1fr;
   }
 
-  /* The watchlist becomes opt-in so the quote is the first thing on screen. */
   .rail {
     display: none;
     position: static;

@@ -4,10 +4,7 @@ import { catchError, map, Observable, shareReplay, throwError } from 'rxjs';
 import { NewsImportance, NewsItem, NewsResponse, NewsSentiment } from '../models/news.model';
 import { LanguageService } from './language.service';
 
-/** How long an identical request is served from memory instead of refetched. */
-// News translations are stable for a while and expensive to regenerate.
-// Keeping them across normal dashboard/detail navigation makes revisits
-// instant while the backend's five-minute feed cache is still fresh.
+// Reuse translations for the lifetime of the backend’s five-minute feed cache.
 const CACHE_TTL_MS = 5 * 60_000;
 
 const IMPORTANCE_VALUES: NewsImportance[] = [
@@ -18,7 +15,7 @@ const IMPORTANCE_VALUES: NewsImportance[] = [
 ];
 const SENTIMENT_VALUES: NewsSentiment[] = ['POSITIVO', 'NEGATIVO', 'NEUTRO'];
 
-export interface CompanyNewsQuery {
+interface CompanyNewsQuery {
   limit?: number;
   range?: string;
   from?: string;
@@ -36,8 +33,11 @@ export class NewsDataService {
   private readonly http = inject(HttpClient);
   private readonly languageService = inject(LanguageService);
   private readonly baseUrl = '/api/news';
-  /** Small in-memory TTL cache so repeat navigation doesn't refetch identical data. */
-  private readonly cache = new Map<string, { expiresAt: number; response$: Observable<NewsResponse> }>();
+
+  private readonly cache = new Map<
+    string,
+    { expiresAt: number; response$: Observable<NewsResponse> }
+  >();
 
   getCompanyNews(
     ticker: string,
@@ -93,12 +93,10 @@ export class NewsDataService {
       .pipe(
         map((response) => this.normalizeResponse(response, ticker)),
         catchError((error) => {
-          // Don't cache failures; the next call should retry.
           this.cache.delete(key);
           return throwError(() => error);
         }),
-        // Let a language/timeframe switch cancel HTTP that no view needs any
-        // more. Completed responses remain replayable from this TTL cache.
+        // Cancel unused HTTP requests while retaining completed responses in the cache.
         shareReplay({ bufferSize: 1, refCount: true }),
       );
 
@@ -108,7 +106,9 @@ export class NewsDataService {
 
   private normalizeResponse(response: Partial<NewsResponse> | null, ticker: string): NewsResponse {
     const items = Array.isArray(response?.items)
-      ? response.items.map((item) => this.normalizeItem(item)).filter((item): item is NewsItem => item !== null)
+      ? response.items
+          .map((item) => this.normalizeItem(item))
+          .filter((item): item is NewsItem => item !== null)
       : [];
 
     return {

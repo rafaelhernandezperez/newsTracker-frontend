@@ -7,8 +7,6 @@
 
   @if (screen() === 'welcome') {
     <section class="hero">
-      <!-- Solid black plate: the quotes run right up to the type and stop,
-           so the headline stays readable over the noise. -->
       <div class="hero-panel" [class.is-launching]="launching()">
         <p class="hero-clock">{{ clock() }}</p>
         <p class="hero-date">{{ today() }}</p>
@@ -40,7 +38,6 @@
       </header>
 
       <div class="auth-body">
-        <!-- Left rail: where you are, and the exchange clock still running. -->
         <aside class="auth-rail">
           <p class="auth-eyebrow">{{ i18n.t('login.accountEyebrow') }}</p>
 
@@ -142,8 +139,6 @@
             </button>
           </form>
 
-          <!-- Bottom-anchored, so the column closes on the same line as the
-               clock in the rail instead of trailing off into black. -->
           <p class="auth-alt">
             <span>
               {{
@@ -183,7 +178,6 @@
       </header>
 
       <div class="auth-body">
-        <!-- The numbered steps are the heading and the progress bar at once. -->
         <aside class="auth-rail">
           <p class="auth-eyebrow">{{ i18n.t('wizard.eyebrow') }}</p>
 

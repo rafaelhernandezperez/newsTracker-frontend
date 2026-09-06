@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   DestroyRef,
@@ -18,8 +17,7 @@ import { TickerSearchService } from '../../../core/services/ticker-search.servic
 
 @Component({
   selector: 'app-company-selector-modal',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './company-selector-modal.html',
   styleUrl: './company-selector-modal.css',
 })
@@ -37,7 +35,7 @@ export class CompanySelectorModalComponent implements OnInit {
 
   search = '';
   tempSelection: Company[] = [];
-  /** Live results from the ticker search API for the current term. */
+
   remoteResults: Company[] = [];
   isSearching = false;
 
@@ -71,17 +69,14 @@ export class CompanySelectorModalComponent implements OnInit {
     this.close.emit();
   }
 
-  /**
-   * Curated companies matching the term, previously added custom companies, and
-   * live search results for anything else listed — deduped by symbol.
-   */
   get filteredCompanies(): Company[] {
     const term = this.search.toLowerCase().trim();
 
     const curated = term
       ? this.companies.filter(
           (company) =>
-            company.symbol.toLowerCase().includes(term) || company.name.toLowerCase().includes(term),
+            company.symbol.toLowerCase().includes(term) ||
+            company.name.toLowerCase().includes(term),
         )
       : this.companies;
 
@@ -103,20 +98,18 @@ export class CompanySelectorModalComponent implements OnInit {
   }
 
   get showNoResults(): boolean {
-    return this.search.trim().length >= 2 && !this.isSearching && this.filteredCompanies.length === 0;
+    return (
+      this.search.trim().length >= 2 && !this.isSearching && this.filteredCompanies.length === 0
+    );
   }
 
   isChecked(company: Company): boolean {
-    return this.tempSelection.some(item => item.symbol === company.symbol);
+    return this.tempSelection.some((item) => item.symbol === company.symbol);
   }
 
   toggleCompany(company: Company): void {
-    const exists = this.tempSelection.some(item => item.symbol === company.symbol);
-
-    if (exists) {
-      this.tempSelection = this.tempSelection.filter(
-        item => item.symbol !== company.symbol
-      );
+    if (this.isChecked(company)) {
+      this.tempSelection = this.tempSelection.filter((item) => item.symbol !== company.symbol);
     } else {
       this.tempSelection = [...this.tempSelection, company];
     }

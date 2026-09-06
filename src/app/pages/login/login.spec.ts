@@ -9,7 +9,6 @@ import { PushService } from '../../core/services/push.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
 import { AlertPrefsService } from '../../core/services/alert-prefs.service';
 
-/** Minimal AuthService fake: no Firebase, nobody signed in. */
 const authServiceStub = {
   user: signal(null),
   ready: signal(true),

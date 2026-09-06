@@ -2,26 +2,17 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { catchError, of } from 'rxjs';
 import { MarketDataService } from './market-data.service';
 
-/** Currencies the interface can display prices in. */
 export type DisplayCurrency = 'USD' | 'EUR';
 
 const CURRENCY_STORAGE_KEY = 'newsTracker.currency';
 
-/** Result of a conversion: the currency is what the amount is ACTUALLY in. */
-export type ConvertedAmount = {
+/** The returned currency always identifies the actual unit of the amount. */
+type ConvertedAmount = {
   amount: number;
   currency: string;
 };
 
-/**
- * The currency prices are displayed in, and the FX rate needed to get there.
- *
- * Quotes arrive in their listing currency (USD for IBM, EUR for BBVA), so
- * showing everything in one currency needs a live rate. `convert` never
- * fabricates a number: if the rate hasn't loaded or the listing currency isn't
- * one of the two supported ones (a London listing in GBP, say), it returns the
- * original amount and its own currency so the UI labels it honestly.
- */
+/** Keep the original amount and currency when a conversion rate is unavailable. */
 @Injectable({ providedIn: 'root' })
 export class CurrencyService {
   private readonly marketData = inject(MarketDataService);
@@ -31,13 +22,9 @@ export class CurrencyService {
   private readonly eurUsdRate = signal<number | null>(null);
   private readonly rateLoading = signal(false);
 
-  /** False while the rate is unknown, so views can explain a native-currency fallback. */
   readonly hasRate = computed(() => this.eurUsdRate() !== null);
-  /**
-   * True while a rate request is in flight, so views don't explain a fallback
-   * that is about to resolve on its own.
-   */
-  readonly isRateLoading = computed(() => this.rateLoading());
+
+  readonly isRateLoading = this.rateLoading.asReadonly();
 
   private rateRequested = false;
 
@@ -55,19 +42,16 @@ export class CurrencyService {
     try {
       localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
     } catch {
-      // Storage may be unavailable (private mode, quota); the choice still
-      // applies to this session.
+      // Keep the in-memory preference when storage is unavailable.
     }
 
-    // A first attempt before sign-in gets a 401, so retry when the user
-    // actually asks to see the other currency.
+    // Retry after sign-in if the initial rate request was unauthorized.
     if (!this.hasRate()) {
       this.rateRequested = false;
       this.loadRate();
     }
   }
 
-  /** Convert `amount` from `sourceCurrency` into the selected display currency. */
   convert(amount: number, sourceCurrency: string): ConvertedAmount {
     const source = sourceCurrency.trim().toUpperCase();
     const target = this.currency();
@@ -85,15 +69,9 @@ export class CurrencyService {
       return { amount: amount / rate, currency: target };
     }
 
-    // Any other listing currency (GBP, JPY, ...) has no rate here; show it as-is
-    // rather than mislabelling it.
     return { amount, currency: source };
   }
 
-  /**
-   * Fetch the EUR/USD rate. Yahoo exposes it as the quotable symbol `EURUSD=X`,
-   * so the existing market endpoint serves it — no extra backend surface.
-   */
   private loadRate(): void {
     if (this.rateRequested) {
       return;
@@ -125,7 +103,7 @@ export class CurrencyService {
         return stored;
       }
     } catch {
-      // fall through to the default
+      // Ignore unavailable or invalid stored preferences.
     }
 
     return 'USD';

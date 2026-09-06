@@ -3,9 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LanguageService } from '../../../core/services/language.service';
 import { LanguageToggleComponent } from './language-toggle';
 
-/** Host with one translated string, to prove views re-render on a switch. */
 @Component({
-  standalone: true,
   imports: [LanguageToggleComponent],
   template: '<h1>{{ i18n.t("dashboard.title") }}</h1><app-language-toggle />',
 })

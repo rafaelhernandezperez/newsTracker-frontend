@@ -8,7 +8,6 @@
   font-family: var(--nt-font-sans);
 }
 
-/* The login screens have no top bar, so the switcher anchors to the corner. */
 .login-language {
   position: absolute;
   z-index: 20;
@@ -21,7 +20,6 @@
   opacity: 0;
 }
 
-/* Stripped-back switcher for this page: just EN / ES, no pill, no globe. */
 :host ::ng-deep .login-language .nt-segmented {
   gap: 0.35rem;
   border: 0;
@@ -48,9 +46,6 @@
   color: #fff;
 }
 
-/* ------------------------------------------------------------------ */
-/* Welcome screen — a black plate punched into the exchange board.     */
-/* ------------------------------------------------------------------ */
 .hero {
   position: relative;
   z-index: 10;
@@ -67,7 +62,7 @@
   background: #000;
   padding: clamp(1.4rem, 2.4vw, 1.9rem) clamp(1.25rem, 2.8vw, 2.5rem) clamp(1.6rem, 2.6vw, 2.1rem);
   text-align: center;
-  /* Reads as a plate cut out of the board — hard edge, barely feathered. */
+
   box-shadow: 0 0 22px 10px #000;
   animation: panel-in 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
@@ -104,9 +99,9 @@
 .hero-title {
   margin-top: clamp(0.9rem, 2vw, 1.35rem);
   color: #fff;
-  /* Capped so both languages keep the headline on the two lines it is written in. */
+
   font-size: clamp(1.85rem, 4.2vw, 2.85rem);
-  /* Grotesque, set medium rather than black — presence without weight. */
+
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.005em;
@@ -152,20 +147,10 @@
   transform: translateX(4px);
 }
 
-/* The plate dissolves as the quotes behind it are blown out of frame. */
 .hero-panel.is-launching {
   animation: panel-out 560ms cubic-bezier(0.4, 0, 0.9, 0.4) forwards;
 }
 
-/* ------------------------------------------------------------------ */
-/* Auth — the calm after the blast.                                    */
-/*                                                                     */
-/* The landing is noise; this is the same system with the volume off:  */
-/* a terminal grid ruled by hairlines, everything locked to it, and    */
-/* one quote line still running along the bottom. The empty third      */
-/* column is not leftover space — it is bounded by a rule, so the      */
-/* silence is part of the composition.                                 */
-/* ------------------------------------------------------------------ */
 .auth {
   --auth-gutter: clamp(1.25rem, 3.4vw, 2.75rem);
   --auth-rule: var(--nt-rule);
@@ -176,7 +161,7 @@
   min-height: 100vh;
   min-height: 100dvh;
   flex-direction: column;
-  /* Room for the fixed ribbon. */
+
   padding-bottom: 4.4rem;
 }
 
@@ -238,7 +223,6 @@
   text-transform: uppercase;
 }
 
-/* The mode switch is the heading: whichever one is white is the page. */
 .auth-modes {
   display: flex;
   flex-direction: column;
@@ -252,7 +236,7 @@
   padding: 0.1rem 0;
   color: rgba(255, 255, 255, 0.26);
   font: inherit;
-  /* Capped so the longest label ("REGISTRARSE") clears the rule. */
+
   font-size: clamp(1.35rem, 2.2vw, 1.8rem);
   font-weight: 600;
   line-height: 1.15;
@@ -272,8 +256,6 @@
   cursor: default;
 }
 
-/* Anchors the rail to the bottom of the grid and keeps the exchange
-   clock from the landing page running, quietly. */
 .auth-meta {
   display: flex;
   flex-direction: column;
@@ -327,7 +309,6 @@
   text-transform: uppercase;
 }
 
-/* Ruled fields, not boxes: the line is the only chrome the form needs. */
 .auth-input {
   width: 100%;
   border: 0;
@@ -401,7 +382,6 @@
   cursor: default;
 }
 
-/* The other way in — set as a footnote, on the clock's baseline. */
 .auth-alt {
   display: flex;
   align-items: baseline;
@@ -431,10 +411,6 @@
   border-bottom-color: #fff;
 }
 
-/* ------------------------------------------------------------------ */
-/* Wizard — the same grid, one step further in. The numbered rail is    */
-/* both the heading and the progress: no dots, no "step 1 of 2".        */
-/* ------------------------------------------------------------------ */
 .wizard-step {
   display: flex;
   align-items: baseline;
@@ -455,8 +431,6 @@
   line-height: 1.5;
 }
 
-/* Ruled rows instead of pills or switches: one line per choice, and a
-   single square that fills when it is on. Same grammar for both steps. */
 .option-list {
   list-style: none;
   border-top: 1px solid var(--auth-rule);
@@ -578,7 +552,6 @@
   color: #fff;
 }
 
-/* Everything after the blast arrives on clean black. */
 .screen-enter {
   animation: screen-in 520ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
@@ -619,8 +592,6 @@
   }
 }
 
-/* Narrow: the three-column grid collapses to stacked bands, still ruled —
-   the structure survives, it just runs vertically. */
 @media (max-width: 900px) {
   .auth-body {
     grid-template-columns: 1fr;

@@ -25,9 +25,9 @@ const pushStub = {
   isCurrentDeviceRegistered: vi.fn(() => false),
   enable: vi.fn(async () => 'enabled' as const),
   unregisterCurrentDevice: vi.fn(async () => true),
-  sendTestNotification: vi.fn<
-    (language: 'en' | 'es') => Promise<PushTestResult>
-  >(async () => 'received'),
+  sendTestNotification: vi.fn<(language: 'en' | 'es') => Promise<PushTestResult>>(
+    async () => 'received',
+  ),
   showLocalPreview: vi.fn(() => true),
 };
 

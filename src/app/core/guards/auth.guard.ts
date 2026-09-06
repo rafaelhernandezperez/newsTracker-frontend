@@ -4,10 +4,6 @@ import { CanActivateFn, Router } from '@angular/router';
 import { filter, map, take } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
-/**
- * Blocks the portfolio views until Firebase resolves the session, then lets
- * signed-in users through and sends everyone else to the login screen.
- */
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -19,10 +15,6 @@ export const authGuard: CanActivateFn = () => {
   );
 };
 
-/**
- * Reverse guard for the login screen: users who are already signed in are sent
- * straight to their portfolio instead of seeing the login form again.
- */
 export const loginGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);

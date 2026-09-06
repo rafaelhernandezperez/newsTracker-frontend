@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -22,7 +21,7 @@ type PushSetupState = 'idle' | 'enabling' | PushEnableResult;
 
 type Step = {
   key: StepKey;
-  /** Short label for the numbered rail. */
+
   labelKey: TranslationKey;
   descriptionKey: TranslationKey;
 };
@@ -33,19 +32,11 @@ type AlertPreference = {
   enabled: boolean;
 };
 
-/** Long enough for the blast to clear the frame, short enough to feel snappy. */
 const LAUNCH_MS = 1000;
 
 @Component({
   selector: 'app-login',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    LanguageToggleComponent,
-    TickerBoardComponent,
-    TickerRibbonComponent,
-  ],
+  imports: [FormsModule, LanguageToggleComponent, TickerBoardComponent, TickerRibbonComponent],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
@@ -62,7 +53,6 @@ export class Login implements OnDestroy {
   protected email = '';
   protected password = '';
   protected confirmPassword = '';
-  // Signals so state mutated after `await` still triggers zoneless change detection.
   protected readonly authError = signal('');
   protected readonly authBusy = signal(false);
   protected readonly setupBusy = signal(false);
@@ -73,14 +63,11 @@ export class Login implements OnDestroy {
   protected readonly currentStep = signal(0);
   protected readonly authMode = signal<AuthMode>('login');
 
-  /** The board is only in the DOM on the welcome screen. */
   private readonly board = viewChild(TickerBoardComponent);
 
-  /** True while the quotes are being blown off the screen. */
   protected readonly launching = signal(false);
   private launchTimer?: ReturnType<typeof setTimeout>;
 
-  // A live clock, the way an exchange screen always carries one.
   private readonly clockService = inject(ClockService);
   protected readonly clock = this.clockService.time;
   protected readonly today = this.clockService.date;
@@ -98,14 +85,10 @@ export class Login implements OnDestroy {
     },
   ];
 
-  // The catalogue itself, so each row can show the name behind the symbol and
-  // every choice resolves to real backend data.
   protected readonly companies = COMPANIES;
 
   protected readonly selectedTickers = signal<ReadonlySet<string>>(new Set(['NVDA', 'BBVA']));
 
-  // Ids match the backend AlertPrefs fields; all on by default, mirroring the
-  // server-side default for users who never save preferences.
   protected readonly alertPreferences = signal<AlertPreference[]>([
     { id: 'priceMoves', labelKey: 'alerts.priceMoves', enabled: true },
     { id: 'highImpact', labelKey: 'alerts.highImpact', enabled: true },
@@ -120,7 +103,6 @@ export class Login implements OnDestroy {
     this.alertPreferences().some((preference) => preference.enabled),
   );
 
-  /** Bottom-anchored tallies, so each step closes on a fact. */
   protected readonly stepTally = computed(() =>
     this.activeStep().key === 'tickers'
       ? this.i18n.t('wizard.selectedCount', { count: this.selectedTickers().size })
@@ -129,11 +111,6 @@ export class Login implements OnDestroy {
         }),
   );
 
-  /**
-   * Leaving the welcome screen: detonate the board first. The market clutter
-   * is thrown off the screen and what is left — the auth card on black — is
-   * the promise the product makes.
-   */
   protected startFlow(): void {
     if (this.launching()) {
       return;
@@ -182,7 +159,6 @@ export class Login implements OnDestroy {
     this.screen.set('auth');
   }
 
-  /** Submit the email/password form: log in (existing user) or start onboarding. */
   protected async submitAuth(): Promise<void> {
     if (this.authBusy()) {
       return;
@@ -204,26 +180,22 @@ export class Login implements OnDestroy {
     try {
       if (this.authMode() === 'login') {
         await this.auth.login(this.email.trim(), this.password);
-        // Returning user: hydrate the local selection from their server watchlist.
         try {
           const companies = await this.watchlist.fetch();
           if (companies.length) {
             this.preferences.setCompanies(companies);
           }
         } catch {
-          // Non-fatal: keep whatever is in local prefs.
+          // Keep local preferences if the server is unavailable.
         }
-        // Same for alert preferences: the server copy is what the scheduled
-        // jobs actually honor, so it wins over stale local state.
         try {
           this.preferences.setAlertPrefs(await this.alertPrefsApi.fetch());
         } catch {
-          // Non-fatal: keep local/default prefs.
+          // Keep local preferences if the server is unavailable.
         }
         await this.router.navigate(['/portfolio']);
       } else {
         await this.auth.register(this.fullName, this.email.trim(), this.password);
-        // New user: continue into the onboarding wizard to pick tickers.
         this.enterWizard();
       }
     } catch (error) {
@@ -239,9 +211,7 @@ export class Login implements OnDestroy {
         return;
       }
 
-      // Start the browser permission request before any awaited API work. The
-      // call to PushService.enable() synchronously invokes requestPermission(),
-      // preserving the user activation from this exact button click.
+      // Request permission before awaiting API work to preserve the button’s user activation.
       const shouldEnablePush = this.wantsNotifications() && !this.pushSkipped();
       const pushAttempt =
         shouldEnablePush && this.pushSetupState() !== 'enabled'
@@ -260,23 +230,19 @@ export class Login implements OnDestroy {
       ) as AlertPrefs;
       this.preferences.setAlertPrefs(alertPrefs);
 
-      // Persist the selection + alert prefs server-side so the scheduled jobs
-      // (digest, high-impact news, price moves) know what to send this user,
-      // and enable push so the alerts can actually be delivered.
       try {
         await this.watchlist.sync(companies);
       } catch {
-        // Non-fatal: the selection still lives locally.
+        // Keep local preferences if the server is unavailable.
       }
       try {
         await this.alertPrefsApi.sync(alertPrefs);
       } catch {
-        // Non-fatal: the prefs still live locally; server keeps defaults.
+        // Keep local preferences if the server is unavailable.
       }
       const pushResult = pushAttempt ? await pushAttempt : this.pushSetupState();
       if (shouldEnablePush && pushResult !== 'enabled') {
-        // Keep the status visible and let the user retry or explicitly continue
-        // without browser delivery. Never fail onboarding silently.
+        // Keep failed push setup visible so the user can retry or skip it.
         this.setupBusy.set(false);
         return;
       }
@@ -296,8 +262,7 @@ export class Login implements OnDestroy {
 
   private enablePushFromGesture(): Promise<PushEnableResult> {
     this.pushSetupState.set('enabling');
-    // Keep this call before any await: enable() synchronously opens the native
-    // browser permission prompt when permission is still `default`.
+    // Call enable() before any await to preserve the browser’s user activation.
     const attempt = this.push.enable();
     return attempt.then((result) => {
       this.pushSetupState.set(result);

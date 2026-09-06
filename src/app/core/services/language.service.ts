@@ -4,7 +4,6 @@ import {
   LOCALES,
   TRANSLATIONS,
   TranslationKey,
-  companySummary,
   sectorLabel,
 } from '../i18n/translations';
 
@@ -12,22 +11,12 @@ export type { AppLanguage, TranslationKey };
 
 const LANGUAGE_STORAGE_KEY = 'newsTracker.language';
 
-/**
- * The single source of truth for the interface language.
- *
- * `language` is a signal, so everything that reads it — `t()` in a template, the
- * `lang` query parameter the news API is called with, the Intl formatters below —
- * re-evaluates the moment the user switches. Views must never branch on an
- * article's own language: what the reader chose here is what the whole app,
- * including AI headlines and summaries, is rendered in.
- */
 @Injectable({
   providedIn: 'root',
 })
 export class LanguageService {
   readonly language = signal<AppLanguage>(this.readInitialLanguage());
 
-  /** BCP 47 locale for Intl date/number formatting. */
   readonly locale = computed(() => LOCALES[this.language()]);
 
   setLanguage(language: AppLanguage): void {
@@ -41,8 +30,7 @@ export class LanguageService {
     try {
       localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
     } catch {
-      // Storage may be unavailable (private mode, quota); the choice still
-      // applies to this session.
+      // Keep the in-memory preference when storage is unavailable.
     }
   }
 
@@ -59,29 +47,10 @@ export class LanguageService {
     );
   }
 
-  /** Sector display name; falls back to a generic "Markets" label. */
   sector(sector?: string | null): string {
     return sectorLabel(sector, this.language());
   }
 
-  /**
-   * The blurb shown for a company: the curated catalogue copy for the current
-   * language, else its exchange line, else whatever the source provided.
-   */
-  companyBlurb(company: { symbol: string; summary?: string; exchange?: string }): string {
-    const curated = companySummary(company.symbol, this.language());
-    if (curated) {
-      return curated;
-    }
-
-    if (company.exchange?.trim()) {
-      return this.t('company.listedOn', { exchange: company.exchange.trim() });
-    }
-
-    return company.summary?.trim() ?? '';
-  }
-
-  /** Long date ("14 June 2026" / "14 de junio de 2026"). */
   formatLongDate(value?: string | Date | null): string {
     const date = this.toDate(value);
 
@@ -96,7 +65,6 @@ export class LanguageService {
     }).format(date);
   }
 
-  /** Clock time ("14:05"). */
   formatTime(value?: string | Date | null): string {
     const date = this.toDate(value);
 
@@ -110,7 +78,6 @@ export class LanguageService {
     }).format(date);
   }
 
-  /** Coarse age of an article ("6h ago" / "hace 6 h"). */
   formatRelativeAge(value?: string | Date | null): string {
     const date = this.toDate(value);
 

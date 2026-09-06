@@ -7,20 +7,14 @@ import {
 
 type LanguageOption = {
   value: AppLanguage;
-  /** Two-letter code shown in the pill. */
+
   code: string;
-  /** Full language name, used for the accessible label and tooltip. */
+
   nameKey: TranslationKey;
 };
 
-/**
- * Compact segmented control for the interface language. Styled to sit inside the
- * app top bar next to the nav links (same pill radius, muted/active treatment),
- * so it reads as part of the navigation instead of a floating widget.
- */
 @Component({
   selector: 'app-language-toggle',
-  standalone: true,
   templateUrl: './language-toggle.html',
   styleUrl: './language-toggle.css',
 })

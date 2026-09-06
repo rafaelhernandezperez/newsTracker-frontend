@@ -9,25 +9,20 @@ import {
 } from '@angular/core';
 import { Quote, createQuote, reprintQuote } from '../../ticker/quote';
 
-/** How often a handful of quotes reprint. Fast enough to feel alive. */
 const TICK_MS = 140;
 
-/**
- * Approximate cell footprint, used to fill the viewport without measuring.
- * Phones get the smaller pair, matching the type scale in the stylesheet.
- */
+/** Keep cell dimensions aligned with the desktop and mobile CSS. */
 const CELL_WIDTH_PX = 300;
 const CELL_HEIGHT_PX = 48;
 const NARROW_WIDTH_PX = 640;
 const NARROW_CELL_WIDTH_PX = 190;
 const NARROW_CELL_HEIGHT_PX = 40;
 
-/** The board overflows the viewport so its slow drift never exposes an edge. */
+/** Overscan prevents the drifting board from exposing an empty edge. */
 const BOARD_OVERSCAN = 1.3;
 
 @Component({
   selector: 'app-ticker-board',
-  standalone: true,
   templateUrl: './ticker-board.html',
   styleUrl: './ticker-board.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,7 +40,6 @@ export class TickerBoardComponent implements OnDestroy {
   protected readonly blasting = signal(false);
   protected readonly gridColumns = computed(() => `repeat(${this.columns()}, minmax(0, 1fr))`);
 
-  /** Indices flashed on the previous tick, cleared on the next one. */
   private flashed: number[] = [];
   private timer?: ReturnType<typeof setInterval>;
   private resizeTimer?: ReturnType<typeof setTimeout>;
@@ -71,7 +65,6 @@ export class TickerBoardComponent implements OnDestroy {
     this.stop();
   }
 
-  /** Fill the viewport — recomputed on resize so a rotation never leaves gaps. */
   private layout(): void {
     const width = typeof window === 'undefined' ? 1280 : window.innerWidth;
     const height = typeof window === 'undefined' ? 800 : window.innerHeight;
@@ -80,12 +73,11 @@ export class TickerBoardComponent implements OnDestroy {
     const cellWidth = narrow ? NARROW_CELL_WIDTH_PX : CELL_WIDTH_PX;
     const cellHeight = narrow ? NARROW_CELL_HEIGHT_PX : CELL_HEIGHT_PX;
 
-    // Rounded, not ceiled: a part-width column would clip its own change value.
+    // Round columns to avoid clipping quote values at the viewport edge.
     const columns = Math.max(1, Math.round(width / cellWidth));
     const rows = Math.max(6, Math.ceil((height * BOARD_OVERSCAN) / cellHeight));
     const total = columns * rows;
 
-    // Indices from the previous layout no longer point anywhere useful.
     this.flashed = [];
     this.columns.set(columns);
     this.cells.update((cells) => {
@@ -104,12 +96,7 @@ export class TickerBoardComponent implements OnDestroy {
     });
   }
 
-  /**
-   * Blow the board apart: every quote is thrown outward from the centre of the
-   * screen, nearest first, so the clutter clears as a shockwave. Vectors come
-   * from the live layout (one read pass, then one write pass) so the explosion
-   * radiates from wherever each cell actually sits.
-   */
+  /** Read all cell positions before writing animation styles to avoid layout thrashing. */
   blast(): void {
     if (this.blasting()) {
       return;
@@ -151,7 +138,6 @@ export class TickerBoardComponent implements OnDestroy {
     }
   }
 
-  /** Reprint a few random quotes, and let last tick's flashes decay. */
   private tick(): void {
     const next = [...this.cells()];
 

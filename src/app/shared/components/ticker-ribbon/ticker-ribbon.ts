@@ -1,21 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, signal } from '@angular/core';
 import { Quote, createQuote, reprintQuote } from '../../ticker/quote';
 
-/** Quotes in one pass of the ribbon; the pass is rendered twice to loop. */
 const QUOTE_COUNT = 26;
 
-/** Slower than the landing board — this screen is meant to feel calm. */
 const TICK_MS = 260;
 
-/**
- * The single line of quotes that runs along the bottom of the auth screens.
- *
- * Same feed and same colours as the landing board, reduced to one calm strip:
- * the market is still out there, it just stopped shouting.
- */
 @Component({
   selector: 'app-ticker-ribbon',
-  standalone: true,
   templateUrl: './ticker-ribbon.html',
   styleUrl: './ticker-ribbon.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,7 +17,7 @@ export class TickerRibbonComponent implements OnDestroy {
     Array.from({ length: QUOTE_COUNT }, (_, id) => createQuote(id)),
   );
 
-  /** Two identical passes make the scroll seamless at -50%. */
+  /** Repeat the ribbon twice for a seamless loop at -50%. */
   protected readonly passes = [0, 1];
 
   private flashed: number[] = [];

@@ -9,7 +9,6 @@ import {
   RawMarketResponse,
 } from '../models/market.model';
 
-/** How long an identical request is served from memory instead of refetched. */
 const CACHE_TTL_MS = 60_000;
 
 @Injectable({
@@ -19,8 +18,11 @@ export class MarketDataService {
   private readonly http = inject(HttpClient);
 
   private readonly baseUrl = '/api/market';
-  /** Small in-memory TTL cache so repeat navigation doesn't refetch identical data. */
-  private readonly cache = new Map<string, { expiresAt: number; response$: Observable<MarketResponse> }>();
+
+  private readonly cache = new Map<
+    string,
+    { expiresAt: number; response$: Observable<MarketResponse> }
+  >();
 
   getCompanyMarketData(ticker: string, days: number = 30): Observable<MarketResponse> {
     const key = `${ticker.toUpperCase()}:${days}`;
@@ -31,12 +33,10 @@ export class MarketDataService {
     }
 
     const response$ = this.http
-      // Encoded: quotable symbols aren't all plain letters (BRK-B, EURUSD=X).
       .get<RawMarketResponse>(`${this.baseUrl}/${encodeURIComponent(ticker)}`, { params: { days } })
       .pipe(
         map((response) => this.normalizeResponse(response, ticker)),
         catchError((error) => {
-          // Don't cache failures; the next call should retry.
           this.cache.delete(key);
           return throwError(() => error);
         }),
@@ -47,7 +47,10 @@ export class MarketDataService {
     return response$;
   }
 
-  private normalizeResponse(response: RawMarketResponse | null, requestedTicker: string): MarketResponse {
+  private normalizeResponse(
+    response: RawMarketResponse | null,
+    requestedTicker: string,
+  ): MarketResponse {
     const history = this.normalizeHistory(response?.history);
     const chart = this.normalizeChart(response?.chart, history);
     const fallbackPrice = history.at(-1)?.close ?? 0;
@@ -71,8 +74,7 @@ export class MarketDataService {
       symbol: String(rawQuote?.symbol || requestedTicker).toUpperCase(),
       currency: typeof rawQuote?.currency === 'string' ? rawQuote.currency : null,
       price: this.toNumber(rawQuote?.price, fallbackPrice) ?? fallbackPrice,
-      // null (not 0) when the backend didn't report a change, so the UI can
-      // show "unknown" instead of a fabricated +0.0%.
+      // Preserve missing changes as null so the UI can distinguish them from zero.
       change: this.toNumber(rawQuote?.change, null),
       volume: this.toNumber(rawQuote?.volume, 0) ?? 0,
       marketCap: this.toNumber(rawQuote?.marketCap, null),
@@ -85,10 +87,7 @@ export class MarketDataService {
     };
   }
 
-  private normalizeChart(
-    rawChart: unknown,
-    history: MarketHistoryPoint[],
-  ): MarketChartPoint[] {
+  private normalizeChart(rawChart: unknown, history: MarketHistoryPoint[]): MarketChartPoint[] {
     if (Array.isArray(rawChart)) {
       return rawChart
         .map((point): MarketChartPoint | null => {

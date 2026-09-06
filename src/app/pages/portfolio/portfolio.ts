@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
@@ -25,7 +24,6 @@ import {
 } from 'rxjs';
 import { COMPANIES } from '../../core/data/companies.data';
 import { newsHeadline, newsSummary } from '../../core/i18n/news-text';
-import { TranslationKey } from '../../core/i18n/translations';
 import { Company } from '../../core/models/company.model';
 import { MarketQuote } from '../../core/models/market.model';
 import { NewsItem } from '../../core/models/news.model';
@@ -39,11 +37,6 @@ import { CompanySelectorModalComponent } from '../../shared/components/company-s
 import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle';
 import { SettingsModalComponent } from '../../shared/components/settings-modal/settings-modal';
 
-type NavItem = {
-  labelKey: TranslationKey;
-  active?: boolean;
-};
-
 type WatchlistRow = {
   company: Company;
   change: string;
@@ -54,18 +47,17 @@ type NewsCard = {
   company: Company;
   headline: string;
   snippet: string;
-  /** Direct link to the article, so the story is readable from the card. */
+
   link: string;
   publishedAt: string;
-  accent: 'blue' | 'green' | 'amber' | 'violet';
   empty: boolean;
-  /** Sort keys mirroring the backend digest ranking (importance → score → recency). */
+
   importanceRank: number;
   score: number;
   publishedMs: number;
 };
 
-/** Same scale the backend digest uses; unclassified items count as NEUTRO. */
+/** Match the backend digest ranking; unclassified stories count as NEUTRO. */
 const IMPORTANCE_RANK: Record<string, number> = {
   MUY_IMPORTANTE: 3,
   IMPORTANTE: 2,
@@ -75,9 +67,7 @@ const IMPORTANCE_RANK: Record<string, number> = {
 
 @Component({
   selector: 'app-portfolio',
-  standalone: true,
   imports: [
-    CommonModule,
     RouterLink,
     CompanySelectorModalComponent,
     LanguageToggleComponent,
@@ -95,31 +85,26 @@ export class PortfolioComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   readonly i18n = inject(LanguageService);
-  /** Language the cards on screen were fetched in; drives the refetch below. */
+
   private loadedLanguage = this.i18n.language();
-  /** Invalidates slower news requests when the language or watchlist changes. */
+
   private newsRequestId = 0;
   private newsLoadSubscription?: Subscription;
 
   isModalOpen = false;
   isSettingsOpen = false;
 
-  /** Loading flags so the sidebar/news areas don't flash the empty state on first load. */
   readonly isWatchlistLoading = signal(false);
   readonly isNewsLoading = signal(false);
 
   readonly availableCompanies: Company[] = COMPANIES;
-  readonly navItems: NavItem[] = [{ labelKey: 'nav.dashboard', active: true }];
 
   selectedCompanies: Company[] = [];
   watchlistRows: WatchlistRow[] = [];
   newsCards: NewsCard[] = [];
 
   constructor() {
-    // Headlines and summaries are generated server-side in the requested
-    // language, so a language switch has to refetch — re-rendering the cached
-    // cards would leave the previous language's text on screen. Initialized to
-    // the current language, so the first run here never duplicates ngOnInit.
+    // Refetch server-generated news when the language changes.
     effect(() => {
       const language = this.i18n.language();
 
@@ -138,13 +123,7 @@ export class PortfolioComponent implements OnInit {
     void this.healServerWatchlist();
   }
 
-  /**
-   * Self-heal: if the server watchlist (what the alert schedulers read) is
-   * empty but this browser has a local selection, push it up. Covers
-   * selections saved while the backend was unreachable — without this, alerts
-   * would silently never fire for the user. Never touches a non-empty server
-   * list, so it can't clobber a watchlist managed from another device.
-   */
+  /** Restore an empty server watchlist from local preferences without replacing remote selections. */
   private async healServerWatchlist(): Promise<void> {
     if (!this.auth.isAuthenticated || !this.selectedCompanies.length) {
       return;
@@ -155,7 +134,7 @@ export class PortfolioComponent implements OnInit {
         await this.watchlist.sync(this.selectedCompanies);
       }
     } catch {
-      // Best-effort: the next visit retries.
+      // Retry on the next visit if the server is unavailable.
     }
   }
 
@@ -184,7 +163,6 @@ export class PortfolioComponent implements OnInit {
     this.closeModal();
   }
 
-  /** Followed companies from prefs, enriched from the catalogue when curated. */
   private resolveCompanies(): Company[] {
     return this.preferences
       .companies()
@@ -229,7 +207,6 @@ export class PortfolioComponent implements OnInit {
   }
 
   private mapWatchlistRow(company: Company, quote: MarketQuote | null): WatchlistRow {
-    // Em-dash when the quote is missing or the backend reported no change.
     if (!quote || quote.change == null) {
       return { company, change: '—', changeDirection: 'neutral' };
     }
@@ -256,8 +233,7 @@ export class PortfolioComponent implements OnInit {
     this.isNewsLoading.set(true);
     this.newsCards = [];
 
-    // Phase 1: paint every company from a native-language RSS result. These
-    // calls do no AI work and finish in roughly source-network time.
+    // Show native-language RSS previews before requesting AI enrichment.
     const immediateCards$ = from(companies).pipe(
       mergeMap(
         (company) =>
@@ -280,9 +256,7 @@ export class PortfolioComponent implements OnInit {
       ),
     );
 
-    // Phase 2: replace previews with fully translated/classified results.
-    // Each dashboard card displays one story; requesting five previously made
-    // the model generate roughly five times as much content per company.
+    // Replace each preview with one translated and classified story.
     const enrichedCards$ = from(companies).pipe(
       mergeMap(
         (company) =>
@@ -296,7 +270,7 @@ export class PortfolioComponent implements OnInit {
               map((response) => this.mapNewsCard(company, response.items[0])),
               catchError(() => of(this.mapNewsCard(company, null))),
             ),
-        // Avoid flooding the inference provider on larger watchlists.
+        // Limit concurrent AI requests for larger watchlists.
         4,
       ),
     );
@@ -311,15 +285,11 @@ export class PortfolioComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((card) => {
-        // Translation calls can be slow. Never let an older request (for
-        // example `lang=es`) overwrite a newer request after the user has
-        // switched the interface to English.
+        // Ignore results from an earlier language or watchlist selection.
         if (requestId !== this.newsRequestId) {
           return;
         }
 
-        // Render each company as soon as it resolves instead of waiting for
-        // the slowest request in the watchlist.
         this.newsCards = [
           ...this.newsCards.filter((existing) => existing.company.symbol !== card.company.symbol),
           card,
@@ -350,7 +320,6 @@ export class PortfolioComponent implements OnInit {
         snippet: '',
         link: '',
         publishedAt: '',
-        accent: 'blue',
         empty: true,
         importanceRank: -1,
         score: 0,
@@ -364,27 +333,10 @@ export class PortfolioComponent implements OnInit {
       snippet: newsSummary(newsItem, this.i18n.language()),
       link: newsItem.link,
       publishedAt: this.i18n.formatLongDate(newsItem.isoDate ?? newsItem.pubDate),
-      accent: this.getAccentFromNews(newsItem),
       empty: false,
       importanceRank: this.importanceRankOf(newsItem),
       score: newsItem.score,
       publishedMs: this.publishedMsOf(newsItem),
     };
-  }
-
-  private getAccentFromNews(newsItem: NewsItem): NewsCard['accent'] {
-    if (newsItem.language === 'es') {
-      return 'amber';
-    }
-
-    if (newsItem.score >= 8) {
-      return 'green';
-    }
-
-    if (newsItem.source.toLowerCase().includes('benzinga')) {
-      return 'violet';
-    }
-
-    return 'blue';
   }
 }

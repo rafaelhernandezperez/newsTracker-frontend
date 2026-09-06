@@ -1,12 +1,3 @@
-/* ------------------------------------------------------------------ */
-/* Dashboard — the arrival.                                            */
-/*                                                                     */
-/* Same terminal grid as the auth screens: a ruled top bar, then two   */
-/* hairline-divided columns. No quote ribbon here on purpose — the     */
-/* market noise thins out as you get closer to the product (a wall of  */
-/* quotes on the landing, one line while signing in, none once you are */
-/* inside). The only numbers left are the ones you asked to follow.    */
-/* ------------------------------------------------------------------ */
 :host {
   display: block;
 }
@@ -21,9 +12,6 @@
   font-family: var(--nt-font-sans);
 }
 
-/* ---------------------------------------------------------------- */
-/* Top bar: time, station, controls.                                 */
-/* ---------------------------------------------------------------- */
 .terminal-bar {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -67,7 +55,6 @@
   color: #fff;
 }
 
-/* Same stripped switcher as the login page. */
 :host ::ng-deep .terminal-language .nt-segmented {
   gap: 0.35rem;
   border: 0;
@@ -94,9 +81,6 @@
   color: #fff;
 }
 
-/* ---------------------------------------------------------------- */
-/* Two columns, one rule between them.                               */
-/* ---------------------------------------------------------------- */
 .terminal-body {
   display: grid;
   grid-template-columns: minmax(13rem, 20rem) minmax(0, 1fr);
@@ -112,7 +96,6 @@
   text-transform: uppercase;
 }
 
-/* A quiet text action with an underline that only firms up on hover. */
 .link-action {
   display: inline-flex;
   align-items: center;
@@ -138,9 +121,6 @@
   color: #fff;
 }
 
-/* ---------------------------------------------------------------- */
-/* Rail — the watchlist.                                             */
-/* ---------------------------------------------------------------- */
 .rail {
   position: sticky;
   top: 3.6rem;
@@ -160,8 +140,6 @@
   border-top: 1px solid var(--nt-rule);
 }
 
-/* Symbol and its move on one line, the name underneath — a quote line,
-   not a card. */
 .holding {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -224,9 +202,6 @@
   line-height: 1.5;
 }
 
-/* ---------------------------------------------------------------- */
-/* Feed — the ranked index of stories.                               */
-/* ---------------------------------------------------------------- */
 .feed {
   border-left: 1px solid var(--nt-rule);
   min-height: calc(100dvh - 3.6rem);
@@ -265,7 +240,6 @@
   line-height: 1.6;
 }
 
-/* The index number is the story's rank in today's digest, not decoration. */
 .story {
   display: grid;
   grid-template-columns: 3.5rem minmax(0, 1fr);
@@ -281,8 +255,6 @@
   letter-spacing: 0.16em;
 }
 
-/* The meta line spans the whole row so the date lands on the right edge of
-   the rule; only the reading text is held to a measure. */
 .story-meta {
   display: flex;
   flex-wrap: wrap;
@@ -356,9 +328,6 @@
   grid-template-columns: 1fr;
 }
 
-/* ---------------------------------------------------------------- */
-/* Narrow: the columns stack, the rules stay.                        */
-/* ---------------------------------------------------------------- */
 @media (max-width: 900px) {
   .terminal-body {
     grid-template-columns: 1fr;

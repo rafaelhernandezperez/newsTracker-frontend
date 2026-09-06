@@ -9,12 +9,6 @@ const STORED_FCM_TOKEN = 'nt.fcmToken';
 export type PushEnableResult = 'enabled' | 'denied' | 'dismissed' | 'unsupported' | 'failed';
 export type PushTestResult = 'received' | 'sent' | 'no-device' | 'no-news' | 'failed';
 
-/**
- * FCM Web Push registration for the desktop browser app. Requests notification
- * permission, obtains the device token and registers it with the backend
- * (`/api/devices`) so the daily digest can reach this device. Also surfaces
- * foreground messages as native notifications.
- */
 @Injectable({ providedIn: 'root' })
 export class PushService {
   private readonly http = inject(HttpClient);
@@ -25,20 +19,12 @@ export class PushService {
   private refreshPromise: Promise<PushEnableResult> | null = null;
   private readonly testReceiptWaiters = new Set<(newsId: string) => void>();
 
-  /**
-   * Enable push for the current (already authenticated) user, prompting for
-   * notification permission if needed. Safe to call more than once; returns
-   * an explicit outcome so callers never have to fail silently.
-   */
   enable(): Promise<PushEnableResult> {
     if (!this.hasBrowserPushApis()) {
       return Promise.resolve('unsupported');
     }
 
-    // requestPermission() must be CALLED while the click/tap still owns the
-    // browser's transient user activation. Do not put an `await` (including
-    // isSupported()) before this line: Safari and other browsers may otherwise
-    // suppress the permission prompt.
+    // Call requestPermission() before any await to preserve the browser’s user activation.
     let permissionPromise: Promise<NotificationPermission>;
     try {
       permissionPromise =
@@ -53,12 +39,7 @@ export class PushService {
     return this.registerAfterPermission(permissionPromise, true);
   }
 
-  /**
-   * Silently re-register the FCM token when permission was already granted.
-   * Called on app start for returning sessions: enable() only runs at
-   * login/onboarding, but FCM tokens rotate, so without this a token would
-   * eventually go stale and pushes would stop reaching the device.
-   */
+  /** Refresh rotating FCM tokens only when notification permission is already granted. */
   refreshIfGranted(): Promise<PushEnableResult> {
     if (!this.hasBrowserPushApis()) {
       return Promise.resolve('unsupported');
@@ -66,15 +47,12 @@ export class PushService {
     if (Notification.permission !== 'granted') {
       return Promise.resolve(Notification.permission === 'denied' ? 'denied' : 'dismissed');
     }
-    // App startup and the settings test can ask for a refresh at the same time.
-    // Share one attempt so the test cannot race ahead of the foreground
-    // listener while a second registration is still in flight.
-    this.refreshPromise ??= this.registerAfterPermission(
-      Promise.resolve('granted'),
-      false,
-    ).finally(() => {
-      this.refreshPromise = null;
-    });
+    // Share concurrent refresh attempts so tests wait for the foreground listener.
+    this.refreshPromise ??= this.registerAfterPermission(Promise.resolve('granted'), false).finally(
+      () => {
+        this.refreshPromise = null;
+      },
+    );
     return this.refreshPromise;
   }
 
@@ -91,7 +69,6 @@ export class PushService {
     prompted: boolean,
   ): Promise<PushEnableResult> {
     if (firebaseVapidKey.startsWith('REPLACE_')) {
-      // FCM needs a Web Push certificate (VAPID key); skip until it is set.
       console.error('[push] Firebase VAPID key is not configured');
       return 'failed';
     }
@@ -113,11 +90,7 @@ export class PushService {
       this.serviceWorkerRegistration = registration;
       this.messaging ??= getMessaging(getFirebaseApp());
 
-      // A focused page receives FCM messages through onMessage(), not through
-      // the background worker. Bind before token/API work: an already-valid
-      // subscription can receive a push while either network request is still
-      // running, and dropping that event produces exactly the misleading
-      // "Firebase accepted" / no-banner state the test is meant to diagnose.
+      // Bind the foreground listener before token and API work so early pushes are captured.
       this.bindForegroundMessages();
 
       const token = await getToken(this.messaging, {
@@ -152,7 +125,7 @@ export class PushService {
       try {
         localStorage.removeItem(STORED_FCM_TOKEN);
       } catch {
-        // Storage can be unavailable in hardened/private browsing modes.
+        // Keep the device unregistered even if local storage is unavailable.
       }
       return true;
     } catch (error) {
@@ -161,16 +134,12 @@ export class PushService {
     }
   }
 
-  /** Whether this browser currently has a token associated with an account. */
   isCurrentDeviceRegistered(): boolean {
     return Boolean(this.registeredToken ?? this.readStoredToken());
   }
 
-  /** Send a real stored company story through the authenticated backend and FCM. */
   async sendTestNotification(language: 'en' | 'es'): Promise<PushTestResult> {
-    // Do not trust the token cached in localStorage as proof that this page is
-    // ready to receive a foreground data message. Refreshing first guarantees
-    // that onMessage is attached before the backend sends the test.
+    // Attach the foreground listener before the backend sends the test notification.
     const readiness = await this.refreshIfGranted();
     if (readiness !== 'enabled') {
       return readiness === 'dismissed' || readiness === 'denied' ? 'no-device' : 'failed';
@@ -180,10 +149,7 @@ export class PushService {
     const receipt = this.waitForTestReceipt(`push-test-${testId}`);
     try {
       await firstValueFrom(this.http.post('/api/devices/test', { language, testId }));
-      // Copy generation happens before FCM send and may take several seconds.
-      // Start the delivery window only once the backend has accepted the push;
-      // the waiter itself was already registered, so an unusually fast receipt
-      // that arrives before the HTTP response is still captured.
+      // Start the receipt timeout after sending; the registered waiter captures early arrivals.
       receipt.startTimeout();
       return (await receipt.promise) ? 'received' : 'sent';
     } catch (error) {
@@ -196,11 +162,7 @@ export class PushService {
     }
   }
 
-  /**
-   * Display polished sample copy using the browser Notification API. Useful for
-   * a visual/screenshot check; unlike sendTestNotification(), it does not prove
-   * that the backend and FCM delivery path are reachable.
-   */
+  /** Preview native notification appearance without testing backend or FCM delivery. */
   showLocalPreview(language: 'en' | 'es'): boolean {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
       return false;
@@ -208,13 +170,13 @@ export class PushService {
     try {
       const spanish = language === 'es';
       const notification = new Notification('Bank of America (BAC)', {
-          body: spanish
-            ? 'La SEC acusó a un exbanquero de Bank of America por filtraciones que presuntamente generaron 18,5 millones de dólares en beneficios ilegales.'
-            : 'The SEC charged a former Bank of America banker over tips that allegedly generated $18.5 million in illegal profit.',
-          icon: '/notification-icon.png',
-          tag: 'newstracker-thesis-preview',
-          requireInteraction: true,
-        });
+        body: spanish
+          ? 'La SEC acusó a un exbanquero de Bank of America por filtraciones que presuntamente generaron 18,5 millones de dólares en beneficios ilegales.'
+          : 'The SEC charged a former Bank of America banker over tips that allegedly generated $18.5 million in illegal profit.',
+        icon: '/notification-icon.png',
+        tag: 'newstracker-thesis-preview',
+        requireInteraction: true,
+      });
       notification.onclick = () => {
         window.focus();
         notification.close();
@@ -242,7 +204,6 @@ export class PushService {
     }
   }
 
-  /** Show foreground pushes as native notifications (SW handles background). */
   private bindForegroundMessages(): void {
     if (this.foregroundBound || !this.messaging) {
       return;
@@ -259,28 +220,22 @@ export class PushService {
         return;
       }
 
-      // Use the worker registration for foreground notifications as well. It
-      // is supported in more browser modes than the Notification constructor
-      // and routes clicks through the same notificationclick handler used for
-      // background pushes.
+      // Use the worker for foreground notifications to share browser support and click routing.
       const displayed = this.serviceWorkerRegistration?.showNotification(title, {
-          body,
-          icon: '/notification-icon.png',
-          data,
-          tag: newsId ? `newstracker-${newsId}` : undefined,
-          // Keep the explicit test on screen until it is dismissed. This is
-          // intentionally limited to synthetic tests; real market alerts keep
-          // normal operating-system timing.
-          requireInteraction: newsId.startsWith('push-test-'),
-        });
+        body,
+        icon: '/notification-icon.png',
+        data,
+        tag: newsId ? `newstracker-${newsId}` : undefined,
+        // Keep synthetic test notifications visible until dismissed.
+        requireInteraction: newsId.startsWith('push-test-'),
+      });
       if (!displayed) {
         return;
       }
 
       void displayed
         .then(() => {
-          // "Received" in the settings UI means more than an FCM callback: the
-          // browser also accepted creation of the persistent notification.
+          // Report receipt only after the browser accepts the persistent notification.
           if (newsId.startsWith('push-test-')) {
             for (const notifyReceipt of this.testReceiptWaiters) {
               notifyReceipt(newsId);
@@ -291,8 +246,10 @@ export class PushService {
     });
   }
 
-  /** Resolve when the focused browser actually receives the synthetic FCM push. */
-  private waitForTestReceipt(expectedNewsId: string, timeoutMs = 8_000): {
+  private waitForTestReceipt(
+    expectedNewsId: string,
+    timeoutMs = 8_000,
+  ): {
     promise: Promise<boolean>;
     startTimeout: () => void;
     cancel: () => void;
@@ -332,8 +289,7 @@ export class PushService {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
     }
-    // Correlation only, not authentication. This fallback covers older test
-    // environments that expose Web Push but not Crypto.randomUUID().
+    // This fallback ID correlates tests and is not used for authentication.
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 18)}`;
   }
 }

@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, HostListener, Output, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslationKey } from '../../../core/i18n/translations';
@@ -26,13 +25,10 @@ type TestNotificationState =
   | 'no-device'
   | 'no-news'
   | 'failed'
-  | 'previewed'
-  | 'preview-failed';
+  | 'previewed';
 
 @Component({
   selector: 'app-settings-modal',
-  standalone: true,
-  imports: [CommonModule],
   templateUrl: './settings-modal.html',
   styleUrl: './settings-modal.css',
 })
@@ -88,8 +84,7 @@ export class SettingsModalComponent {
 
     this.pushState.set('enabling');
     this.testNotificationState.set('idle');
-    // This call must remain synchronous within the button click so browsers
-    // allow Notification.requestPermission() to display its native prompt.
+    // Call enable() synchronously so the browser can show its permission prompt.
     const attempt = this.push.enable();
     void attempt.then((result) => this.pushState.set(result));
   }
@@ -105,16 +100,10 @@ export class SettingsModalComponent {
   }
 
   showNotificationPreview(): void {
-    // Always render a deterministic in-app sample. Native browser banners can
-    // be hidden by Focus/Do Not Disturb or operating-system settings even when
-    // the site's Notification permission is granted, which made the old
-    // preview report success without anything visible to capture.
+    // Show an in-app preview even when the operating system suppresses native banners.
     this.previewVisible.set(true);
     this.testNotificationState.set('previewed');
 
-    // Also request the native sample when the browser allows it. This is a
-    // best-effort extra; the explicitly labelled on-screen card is the reliable
-    // screenshot preview and never claims to prove Firebase delivery.
     this.push.showLocalPreview(this.i18n.language());
   }
 
@@ -183,8 +172,6 @@ export class SettingsModalComponent {
         return this.i18n.t('settings.testFailed');
       case 'previewed':
         return this.i18n.t('settings.previewShown');
-      case 'preview-failed':
-        return this.i18n.t('settings.previewFailed');
       default:
         return null;
     }

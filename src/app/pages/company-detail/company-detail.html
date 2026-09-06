@@ -59,7 +59,6 @@
           {{ isWatchlistOpen ? i18n.t('detail.hideWatchlist') : i18n.t('detail.showWatchlist') }}
         </button>
 
-        <!-- Identity: symbol, last price, and how far it moved today. -->
         <div class="quote-head">
           <h1 class="quote-symbol">{{ company.symbol }}</h1>
 
@@ -86,7 +85,6 @@
           </p>
         </div>
 
-        <!-- Range and currency sit on the rule above the chart. -->
         <div class="chart-bar">
           <div class="range-tabs">
             @for (tab of timeframeOptions; track tab.label) {
@@ -140,7 +138,6 @@
           >
         </p>
 
-        <!-- The session's numbers as a data strip, one cell per figure. -->
         <dl class="stats">
           @for (stat of statCards; track stat.labelKey) {
             <div class="stat">

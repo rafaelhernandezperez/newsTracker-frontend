@@ -19,6 +19,5 @@ export const routes: Routes = [
       import('./pages/company-detail/company-detail').then((m) => m.CompanyDetailComponent),
     canActivate: [authGuard],
   },
-  // Unknown URLs land on the dashboard; the guard bounces logged-out users to /login.
   { path: '**', redirectTo: 'portfolio' },
 ];

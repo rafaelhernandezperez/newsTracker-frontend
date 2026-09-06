@@ -24,9 +24,9 @@ describe('PushService', () => {
   let notificationConstructor: Mock<(title: string, options?: NotificationOptions) => void>;
 
   function configureGrantedPush() {
-    const showNotification = vi.fn<
-      (title: string, options?: NotificationOptions) => Promise<void>
-    >(async () => undefined);
+    const showNotification = vi.fn<(title: string, options?: NotificationOptions) => Promise<void>>(
+      async () => undefined,
+    );
     const workerRegistration = {
       scope: '/',
       showNotification,
@@ -94,9 +94,7 @@ describe('PushService', () => {
 
     const result = service.enable();
 
-    // This assertion intentionally happens before awaiting anything. Moving an
-    // async capability check ahead of requestPermission would regress the user
-    // activation requirement and fail here.
+    // Assert before awaiting to catch regressions in the user activation requirement.
     expect(requestPermission).toHaveBeenCalledOnce();
     expect(messagingMocks.isSupported).not.toHaveBeenCalled();
 
@@ -223,10 +221,9 @@ describe('PushService', () => {
 
     http.expectOne('/api/devices').flush({ ok: true });
     await settlePromises();
-    http.expectOne('/api/devices/test').flush(
-      { ok: false, code: 'no-news' },
-      { status: 409, statusText: 'Conflict' },
-    );
+    http
+      .expectOne('/api/devices/test')
+      .flush({ ok: false, code: 'no-news' }, { status: 409, statusText: 'Conflict' });
 
     await expect(result).resolves.toBe('no-news');
   });

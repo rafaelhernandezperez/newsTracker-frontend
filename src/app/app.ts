@@ -5,7 +5,6 @@ import { PushService } from './core/services/push.service';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [RouterOutlet],
   templateUrl: './app.html',
 })
@@ -15,11 +14,7 @@ export class App {
   private refreshedPushUid: string | null = null;
 
   constructor() {
-    // Returning session: re-register the FCM device token once auth resolves.
-    // enable() only runs at login/onboarding, but tokens rotate — without this
-    // refresh, pushes to a long-lived session would silently stop arriving.
-    // No permission prompt: refreshIfGranted() is a no-op unless the user
-    // already granted notifications.
+    // Refresh rotating FCM tokens once per signed-in session without prompting.
     effect(() => {
       const uid = this.auth.user()?.uid ?? null;
       if (!uid) {

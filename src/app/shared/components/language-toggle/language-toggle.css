@@ -1,5 +1,3 @@
-/* Visuals live in styles.css as the shared .nt-segmented control, so this pill
-   and the currency pill can never drift apart. */
 :host {
   display: inline-flex;
 }

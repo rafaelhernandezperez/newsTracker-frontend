@@ -9,12 +9,6 @@ type WatchlistResponse = {
   items: { ticker: string; companyName?: string | null }[];
 };
 
-/**
- * Mirrors the user's selected companies to the server-side watchlist
- * (`/api/watchlist`, keyed by Firebase uid). The daily digest reads this
- * Firestore watchlist to know which tickers each user follows, so syncing it is
- * what makes per-user alerts possible.
- */
 @Injectable({ providedIn: 'root' })
 export class WatchlistService {
   private readonly http = inject(HttpClient);
@@ -22,13 +16,7 @@ export class WatchlistService {
   private readonly auth = inject(AuthService);
   private readonly baseUrl = '/api/watchlist';
 
-  /**
-   * Persist a new selection — the single entry point for "the user changed their
-   * watchlist", used by every screen that can edit it. Local prefs are written
-   * first so the UI is right even offline; the server copy follows for signed-in
-   * users, which is what makes the scheduled alerts track the change. Skipping
-   * that mirror is how alerts silently stop matching the watchlist.
-   */
+  /** Save locally first, then sync authenticated users’ watchlists to the server. */
   async save(companies: StoredCompany[]): Promise<void> {
     this.preferences.setCompanies(companies);
 
@@ -37,7 +25,6 @@ export class WatchlistService {
     }
   }
 
-  /** Pull the server watchlist (used to hydrate local prefs after login). */
   async fetch(): Promise<StoredCompany[]> {
     const response = await firstValueFrom(this.http.get<WatchlistResponse>(this.baseUrl));
     return (response.items ?? [])
@@ -48,10 +35,6 @@ export class WatchlistService {
       .filter((company) => Boolean(company.symbol));
   }
 
-  /**
-   * Make the server watchlist match `companies` exactly: add the missing ones
-   * and remove the extras. Best-effort and idempotent.
-   */
   async sync(companies: StoredCompany[]): Promise<void> {
     const desired = new Map(companies.map((company) => [company.symbol.toUpperCase(), company]));
 
@@ -59,7 +42,7 @@ export class WatchlistService {
     try {
       current = await this.fetch();
     } catch {
-      // No existing watchlist (or transient error) — treat as empty and add all.
+      // Treat a failed fetch as empty and attempt to add the desired companies.
     }
     const existing = new Set(current.map((company) => company.symbol));
 

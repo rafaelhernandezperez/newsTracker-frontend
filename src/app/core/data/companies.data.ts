@@ -1,10 +1,5 @@
 import { Company } from '../models/company.model';
 
-/**
- * Curated catalogue. The editorial blurb for each symbol lives in
- * `core/i18n/translations.ts` (one per language) so the list itself stays
- * language-neutral — `LanguageService.companyBlurb()` resolves it for display.
- */
 export const COMPANIES: Company[] = [
   {
     symbol: 'BBVA',

@@ -1,12 +1,6 @@
-/**
- * The fake market feed behind the chrome.
- *
- * Symbols are real, prices are invented — this is set dressing, never data.
- * Shared by the landing board (the wall of quotes) and the ribbon that runs
- * along the bottom of the auth screens, so both read as the same exchange.
- */
+/** Decorative quotes use real symbols and simulated prices, never live market data. */
 
-export type Trend = 'up' | 'down' | 'flat';
+type Trend = 'up' | 'down' | 'flat';
 
 export type Quote = {
   readonly id: number;
@@ -14,34 +8,146 @@ export type Quote = {
   readonly price: number;
   readonly priceText: string;
   readonly changeText: string;
-  /** Last move — colours the whole line green, red, or white when unchanged. */
+
   readonly trend: Trend;
-  /** Set on the tick a quote reprints, so the line flashes and then decays. */
+  /** Flash only on the tick that updates the quote. */
   readonly flash: boolean;
 };
 
-/** Tickers, indices and commodities, in the shorthand a trading screen uses. */
 const SYMBOLS = [
-  'AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'META', 'NFLX', 'AMD', 'INTC',
-  'ORCL', 'CRM', 'ADBE', 'IBM', 'CSCO', 'QCOM', 'TXN', 'AVGO', 'MU', 'ASML',
-  'JPM', 'GS', 'MS', 'BAC', 'WFC', 'C', 'V', 'MA', 'AXP', 'BLK',
-  'BBVA', 'SAN', 'ITX', 'IBE', 'TEF', 'REP', 'FER', 'AENA', 'CLNX', 'GRF',
-  'XOM', 'CVX', 'OXY', 'SLB', 'BP', 'SHEL', 'TTE', 'ENI', 'EQNR', 'COP',
-  'JNJ', 'PFE', 'MRK', 'LLY', 'UNH', 'ABBV', 'AMGN', 'GILD', 'BMY', 'CVS',
-  'WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'KO', 'PEP', 'PG', 'DIS', 'COST',
-  'BA', 'CAT', 'GE', 'HON', 'LMT', 'RTX', 'DE', 'MMM', 'UPS', 'UNP',
-  'SPX', 'NDX', 'INDU', 'INDP', 'NYSE', 'VIX', 'DAX', 'CAC', 'IBEX', 'FTSE',
-  'NKY', 'HSI', 'STOXX', 'RUT', 'TNX', 'DXY', 'BRNT', 'WTI', 'GOLD', 'SILV',
-  'GDX', 'FANG', 'DRG', 'ICE', 'SPMI', 'GDM', 'UTIL', 'BKX', 'XLE', 'XLF',
+  'AAPL',
+  'MSFT',
+  'NVDA',
+  'TSLA',
+  'AMZN',
+  'GOOGL',
+  'META',
+  'NFLX',
+  'AMD',
+  'INTC',
+  'ORCL',
+  'CRM',
+  'ADBE',
+  'IBM',
+  'CSCO',
+  'QCOM',
+  'TXN',
+  'AVGO',
+  'MU',
+  'ASML',
+  'JPM',
+  'GS',
+  'MS',
+  'BAC',
+  'WFC',
+  'C',
+  'V',
+  'MA',
+  'AXP',
+  'BLK',
+  'BBVA',
+  'SAN',
+  'ITX',
+  'IBE',
+  'TEF',
+  'REP',
+  'FER',
+  'AENA',
+  'CLNX',
+  'GRF',
+  'XOM',
+  'CVX',
+  'OXY',
+  'SLB',
+  'BP',
+  'SHEL',
+  'TTE',
+  'ENI',
+  'EQNR',
+  'COP',
+  'JNJ',
+  'PFE',
+  'MRK',
+  'LLY',
+  'UNH',
+  'ABBV',
+  'AMGN',
+  'GILD',
+  'BMY',
+  'CVS',
+  'WMT',
+  'HD',
+  'MCD',
+  'NKE',
+  'SBUX',
+  'KO',
+  'PEP',
+  'PG',
+  'DIS',
+  'COST',
+  'BA',
+  'CAT',
+  'GE',
+  'HON',
+  'LMT',
+  'RTX',
+  'DE',
+  'MMM',
+  'UPS',
+  'UNP',
+  'SPX',
+  'NDX',
+  'INDU',
+  'INDP',
+  'NYSE',
+  'VIX',
+  'DAX',
+  'CAC',
+  'IBEX',
+  'FTSE',
+  'NKY',
+  'HSI',
+  'STOXX',
+  'RUT',
+  'TNX',
+  'DXY',
+  'BRNT',
+  'WTI',
+  'GOLD',
+  'SILV',
+  'GDX',
+  'FANG',
+  'DRG',
+  'ICE',
+  'SPMI',
+  'GDM',
+  'UTIL',
+  'BKX',
+  'XLE',
+  'XLF',
 ];
 
-/** Symbols that print in index territory rather than share-price territory. */
 const BIG_PRINT = new Set([
-  'SPX', 'NDX', 'INDU', 'INDP', 'NYSE', 'DAX', 'CAC', 'IBEX', 'FTSE', 'NKY',
-  'HSI', 'STOXX', 'RUT', 'SPMI', 'GDM', 'UTIL', 'BKX', 'GOLD',
+  'SPX',
+  'NDX',
+  'INDU',
+  'INDP',
+  'NYSE',
+  'DAX',
+  'CAC',
+  'IBEX',
+  'FTSE',
+  'NKY',
+  'HSI',
+  'STOXX',
+  'RUT',
+  'SPMI',
+  'GDM',
+  'UTIL',
+  'BKX',
+  'GOLD',
 ]);
 
-/** Share of quotes printing unchanged — those are the white lines on the wall. */
 const FLAT_ODDS = 0.09;
 
 export function createQuote(id: number): Quote {
@@ -61,7 +167,6 @@ export function createQuote(id: number): Quote {
   };
 }
 
-/** Reprint a quote: a small random walk, or occasionally an unchanged print. */
 export function reprintQuote(quote: Quote): Quote {
   if (Math.random() < FLAT_ODDS) {
     return { ...quote, changeText: '0.00', trend: 'flat', flash: true };
@@ -81,7 +186,6 @@ export function reprintQuote(quote: Quote): Quote {
   };
 }
 
-/** Board convention: big prints keep their separators, all keep two decimals. */
 function formatPrice(price: number): string {
   return price >= 1000
     ? price.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 })

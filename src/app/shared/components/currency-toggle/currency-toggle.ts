@@ -4,20 +4,14 @@ import { LanguageService, TranslationKey } from '../../../core/services/language
 
 type CurrencyOption = {
   value: DisplayCurrency;
-  /** ISO code shown in the pill. */
+
   code: string;
-  /** Full currency name, used for the accessible label and tooltip. */
+
   nameKey: TranslationKey;
 };
 
-/**
- * Segmented control for the currency prices are shown in. Same pill as the
- * language switcher (shared .nt-segmented styles), sized to sit in the chart
- * controls row next to the timeframe tabs.
- */
 @Component({
   selector: 'app-currency-toggle',
-  standalone: true,
   templateUrl: './currency-toggle.html',
   styleUrl: './currency-toggle.css',
 })

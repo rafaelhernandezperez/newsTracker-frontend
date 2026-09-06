@@ -11,16 +11,10 @@ import {
 } from 'firebase/auth';
 import { getFirebaseApp } from '../firebase/firebase.config';
 
-/**
- * Wraps Firebase Authentication. Exposes the current user as a signal so views
- * react to login/logout, and hands out fresh ID tokens for authenticated API
- * calls.
- */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly auth: Auth = getAuth(getFirebaseApp());
 
-  /** Current signed-in user (null when logged out). */
   readonly user = signal<User | null>(null);
   /** True once Firebase has resolved the initial auth state. */
   readonly ready = signal(false);
@@ -53,7 +47,6 @@ export class AuthService {
     await signOut(this.auth);
   }
 
-  /** Fresh Firebase ID token for the Authorization header, or null if logged out. */
   async getIdToken(): Promise<string | null> {
     const user = this.auth.currentUser;
     return user ? user.getIdToken() : null;

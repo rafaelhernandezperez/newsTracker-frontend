@@ -15,9 +15,9 @@ export interface NewsItem {
   score: number;
   /** AI summary in the language selected for the interface. */
   aiSummary?: string;
-  /** AI-classified market impact. Drives the chart marker size. */
+  /** Market impact controls chart marker size. */
   importance?: NewsImportance;
-  /** AI-classified tone. Drives the chart marker color. */
+  /** Sentiment controls chart marker color. */
   sentiment?: NewsSentiment;
 }
 

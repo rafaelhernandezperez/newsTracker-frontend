@@ -3,12 +3,7 @@ import { inject } from '@angular/core';
 import { from, switchMap } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
-/**
- * Attaches `Authorization: Bearer <idToken>` to every backend request
- * (relative `/api/*` URLs) when a user is signed in. The relative-prefix match
- * guarantees third-party absolute URLs never receive tokens. Requests made
- * while logged out pass through unchanged.
- */
+/** Attach tokens only to relative backend URLs under /api/. */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith('/api/')) {
     return next(req);

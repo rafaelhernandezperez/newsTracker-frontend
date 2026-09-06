@@ -1,8 +1,3 @@
-/* ------------------------------------------------------------------ */
-/* The exchange board behind the landing hero: a wall of live quotes,  */
-/* LED-green and red on black, that the Get started button blows apart.*/
-/* Decorative only — aria-hidden and never interactive.                */
-/* ------------------------------------------------------------------ */
 :host {
   position: absolute;
   inset: 0;
@@ -23,7 +18,7 @@
   padding: 0 14px;
   opacity: 0.9;
   font-family: var(--nt-font-sans);
-  /* Big prints, like the wall at the exchange — legible from across the room. */
+
   font-size: clamp(0.95rem, 1.3vw, 1.25rem);
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -33,24 +28,20 @@
 }
 
 .cell {
-  /* Fixed tracks, packed left: the quote reads as one line instead of a symbol
-     and a price stranded at opposite ends of the column. Widths still align
-     the decimals from row to row, the way a board is read. */
   display: grid;
   grid-template-columns: 4.2em 5.2em 3.4em;
-  /* Shrink to the quote so a flash highlights the line, not the empty track. */
+
   justify-self: start;
   align-items: center;
   gap: 0.55em;
   padding: 0 0.5rem;
   white-space: nowrap;
-  /* Never let a long print run into the next column of the wall. */
+
   overflow: hidden;
-  /* Instant on the flash, slow decay off — see .is-flash below. */
+
   transition: background-color 640ms ease-out;
 }
 
-/* Uneven brightness, the way a wall of separate screens never matches. */
 .cell:nth-child(3n) {
   opacity: 0.82;
 }
@@ -78,7 +69,6 @@
   opacity: 0.82;
 }
 
-/* The whole line carries the colour of the move, symbol included. */
 .is-up {
   color: var(--nt-quote-up);
   text-shadow: 0 0 12px rgba(53, 224, 141, 0.32);
@@ -89,7 +79,6 @@
   text-shadow: 0 0 12px rgba(255, 87, 87, 0.3);
 }
 
-/* White is reserved for a quote that printed unchanged. */
 .is-flat {
   color: var(--nt-quote-flat);
   text-shadow: 0 0 12px rgba(255, 255, 255, 0.22);
@@ -111,21 +100,12 @@
   background-color: rgba(255, 255, 255, 0.14);
 }
 
-/* CRT texture: scanlines plus a faint pixel grid. */
 .scanlines {
   position: absolute;
   inset: 0;
   background-image:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.34) 0 1px,
-      transparent 1px 3px
-    ),
-    repeating-linear-gradient(
-      to right,
-      rgba(0, 0, 0, 0.22) 0 1px,
-      transparent 1px 3px
-    );
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.34) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(to right, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
   mix-blend-mode: multiply;
   opacity: 0.75;
 }
@@ -135,10 +115,15 @@
   inset: 0;
   background:
     radial-gradient(ellipse at center, rgba(0, 0, 0, 0.12) 34%, rgba(0, 0, 0, 0.7) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.32), transparent 20%, transparent 80%, rgba(0, 0, 0, 0.4));
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.32),
+      transparent 20%,
+      transparent 80%,
+      rgba(0, 0, 0, 0.4)
+    );
 }
 
-/* The flash at the moment of detonation. */
 .shockwave {
   position: absolute;
   inset: -20%;
@@ -161,16 +146,11 @@
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Blast: every quote is thrown out of frame, nearest to the centre    */
-/* first, leaving nothing but black for the next screen.               */
-/* ------------------------------------------------------------------ */
 :host(.is-blasting) {
   animation: board-clear 1s ease-out forwards;
 }
 
 :host(.is-blasting) .board {
-  /* Paused, not removed: the blast vectors were measured with it applied. */
   animation-play-state: paused;
 }
 
@@ -195,13 +175,11 @@
     opacity: 1;
   }
 
-  /* A beat of pressure before the quote is thrown. */
   12% {
     transform: translate3d(0, 0, 0) scale(1.18) rotate(0deg);
     opacity: 1;
   }
 
-  /* Stays legible most of the way out, so you read what is being lost. */
   60% {
     opacity: 1;
   }
@@ -246,7 +224,6 @@
   }
 }
 
-/* Phones: same wall, scaled to fit two columns without clipping a print. */
 @media (max-width: 640px) {
   .board {
     grid-auto-rows: 40px;
