@@ -17,16 +17,6 @@ type AlertOption = {
   labelKey: TranslationKey;
 };
 
-type TestNotificationState =
-  | 'idle'
-  | 'sending'
-  | 'received'
-  | 'sent'
-  | 'no-device'
-  | 'no-news'
-  | 'failed'
-  | 'previewed';
-
 @Component({
   selector: 'app-settings-modal',
   templateUrl: './settings-modal.html',
@@ -47,8 +37,6 @@ export class SettingsModalComponent {
   readonly pushState = signal<PushControlState>(this.initialPushState());
   readonly saveState = signal<'idle' | 'saving' | 'failed'>('idle');
   readonly logoutBusy = signal(false);
-  readonly testNotificationState = signal<TestNotificationState>('idle');
-  readonly previewVisible = signal(false);
 
   readonly alertOptions: AlertOption[] = [
     { id: 'priceMoves', labelKey: 'alerts.priceMoves' },
@@ -74,7 +62,6 @@ export class SettingsModalComponent {
     }
 
     if (this.pushState() === 'enabled') {
-      this.testNotificationState.set('idle');
       this.pushState.set('disabling');
       void this.push.unregisterCurrentDevice().then((removed) => {
         this.pushState.set(removed ? 'disabled' : 'failed');
@@ -83,28 +70,9 @@ export class SettingsModalComponent {
     }
 
     this.pushState.set('enabling');
-    this.testNotificationState.set('idle');
     // Call enable() synchronously so the browser can show its permission prompt.
     const attempt = this.push.enable();
     void attempt.then((result) => this.pushState.set(result));
-  }
-
-  sendTestNotification(): void {
-    if (this.testNotificationState() === 'sending' || this.pushState() !== 'enabled') {
-      return;
-    }
-    this.testNotificationState.set('sending');
-    void this.push.sendTestNotification(this.i18n.language()).then((result) => {
-      this.testNotificationState.set(result);
-    });
-  }
-
-  showNotificationPreview(): void {
-    // Show an in-app preview even when the operating system suppresses native banners.
-    this.previewVisible.set(true);
-    this.testNotificationState.set('previewed');
-
-    this.push.showLocalPreview(this.i18n.language());
   }
 
   async save(): Promise<void> {
@@ -153,27 +121,6 @@ export class SettingsModalComponent {
         return this.i18n.t('alerts.browserFailed');
       default:
         return this.i18n.t('settings.deliveryDisabled');
-    }
-  }
-
-  testNotificationMessage(): string | null {
-    switch (this.testNotificationState()) {
-      case 'sending':
-        return this.i18n.t('settings.testSending');
-      case 'received':
-        return this.i18n.t('settings.testReceived');
-      case 'sent':
-        return this.i18n.t('settings.testSent');
-      case 'no-device':
-        return this.i18n.t('settings.testNoDevice');
-      case 'no-news':
-        return this.i18n.t('settings.testNoNews');
-      case 'failed':
-        return this.i18n.t('settings.testFailed');
-      case 'previewed':
-        return this.i18n.t('settings.previewShown');
-      default:
-        return null;
     }
   }
 

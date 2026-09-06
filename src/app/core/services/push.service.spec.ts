@@ -21,7 +21,6 @@ describe('PushService', () => {
   let permission: NotificationPermission;
   let requestPermission: Mock<() => Promise<NotificationPermission>>;
   let registerWorker: Mock<(path: string) => Promise<ServiceWorkerRegistration>>;
-  let notificationConstructor: Mock<(title: string, options?: NotificationOptions) => void>;
 
   function configureGrantedPush() {
     const showNotification = vi.fn<(title: string, options?: NotificationOptions) => Promise<void>>(
@@ -45,7 +44,6 @@ describe('PushService', () => {
     permission = 'default';
     requestPermission = vi.fn<() => Promise<NotificationPermission>>();
     registerWorker = vi.fn<(path: string) => Promise<ServiceWorkerRegistration>>();
-    notificationConstructor = vi.fn<(title: string, options?: NotificationOptions) => void>();
 
     class NotificationMock {
       static get permission(): NotificationPermission {
@@ -54,10 +52,6 @@ describe('PushService', () => {
 
       static requestPermission(): Promise<NotificationPermission> {
         return requestPermission();
-      }
-
-      constructor(title: string, options?: NotificationOptions) {
-        notificationConstructor(title, options);
       }
     }
 
@@ -148,6 +142,37 @@ describe('PushService', () => {
     expect(requestPermission).not.toHaveBeenCalled();
   });
 
+  it('shows foreground pushes through the service worker registration', async () => {
+    const { showNotification } = configureGrantedPush();
+
+    const result = service.refreshIfGranted();
+    await settlePromises();
+    http.expectOne('/api/devices').flush({ ok: true });
+    await expect(result).resolves.toBe('enabled');
+
+    const calls = messagingMocks.onMessage.mock.calls as unknown as Array<
+      [unknown, (payload: { data?: Record<string, string> }) => void]
+    >;
+    calls[0][1]({
+      data: {
+        title: 'Bank of America (BAC)',
+        body: 'La SEC acusó a un exbanquero por uso de información privilegiada.',
+        newsId: 'news-1',
+        link: 'https://example.com/real-story',
+      },
+    });
+    await settlePromises();
+
+    expect(showNotification).toHaveBeenCalledWith(
+      'Bank of America (BAC)',
+      expect.objectContaining({
+        body: 'La SEC acusó a un exbanquero por uso de información privilegiada.',
+        icon: '/notification-icon.png',
+        tag: 'newstracker-news-1',
+      }),
+    );
+  });
+
   it('removes the registered device from the account on logout', async () => {
     const token = `logout:${'a'.repeat(72)}`;
     localStorage.setItem('nt.fcmToken', token);
@@ -161,85 +186,6 @@ describe('PushService', () => {
 
     await expect(result).resolves.toBe(true);
     expect(localStorage.getItem('nt.fcmToken')).toBeNull();
-  });
-
-  it('verifies a correlated real-story test after creating a persistent notification', async () => {
-    const { showNotification } = configureGrantedPush();
-    const result = service.sendTestNotification('es');
-    await settlePromises();
-
-    const registrationRequest = http.expectOne('/api/devices');
-    registrationRequest.flush({ ok: true });
-    await settlePromises();
-
-    const request = http.expectOne('/api/devices/test');
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body.language).toBe('es');
-    expect(request.request.body.testId).toMatch(/^[A-Za-z0-9_-]{16,80}$/);
-    const expectedNewsId = `push-test-${request.request.body.testId}`;
-    request.flush({
-      ok: true,
-      sent: 1,
-      failed: 0,
-      sample: {
-        ticker: 'BAC',
-        title: 'Bank of America (BAC)',
-        body: 'La SEC acusó a un exbanquero por uso de información privilegiada.',
-      },
-    });
-
-    const calls = messagingMocks.onMessage.mock.calls as unknown as Array<
-      [unknown, (payload: { data?: Record<string, string> }) => void]
-    >;
-    calls[0][1]({
-      data: {
-        ticker: 'BAC',
-        title: 'Bank of America (BAC)',
-        body: 'La SEC acusó a un exbanquero por uso de información privilegiada.',
-        newsId: expectedNewsId,
-        link: 'https://example.com/real-story',
-      },
-    });
-    await settlePromises();
-
-    await expect(result).resolves.toBe('received');
-    expect(showNotification).toHaveBeenCalledWith(
-      'Bank of America (BAC)',
-      expect.objectContaining({
-        body: 'La SEC acusó a un exbanquero por uso de información privilegiada.',
-        icon: '/notification-icon.png',
-        tag: `newstracker-${expectedNewsId}`,
-        requireInteraction: true,
-      }),
-    );
-  });
-
-  it('distinguishes an empty news store from a missing device', async () => {
-    configureGrantedPush();
-    const result = service.sendTestNotification('en');
-    await settlePromises();
-
-    http.expectOne('/api/devices').flush({ ok: true });
-    await settlePromises();
-    http
-      .expectOne('/api/devices/test')
-      .flush({ ok: false, code: 'no-news' }, { status: 409, statusText: 'Conflict' });
-
-    await expect(result).resolves.toBe('no-news');
-  });
-
-  it('can display a clearly local notification preview for screenshots', () => {
-    permission = 'granted';
-
-    expect(service.showLocalPreview('es')).toBe(true);
-    expect(notificationConstructor).toHaveBeenCalledWith(
-      'Bank of America (BAC)',
-      expect.objectContaining({
-        body: 'La SEC acusó a un exbanquero de Bank of America por filtraciones que presuntamente generaron 18,5 millones de dólares en beneficios ilegales.',
-        icon: '/notification-icon.png',
-        requireInteraction: true,
-      }),
-    );
   });
 });
 

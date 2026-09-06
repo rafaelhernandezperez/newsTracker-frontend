@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import { AlertPrefsService } from '../../../core/services/alert-prefs.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { PushService, type PushTestResult } from '../../../core/services/push.service';
+import { PushService } from '../../../core/services/push.service';
 import {
   AlertPrefs,
   UserPreferencesService,
@@ -25,10 +25,6 @@ const pushStub = {
   isCurrentDeviceRegistered: vi.fn(() => false),
   enable: vi.fn(async () => 'enabled' as const),
   unregisterCurrentDevice: vi.fn(async () => true),
-  sendTestNotification: vi.fn<(language: 'en' | 'es') => Promise<PushTestResult>>(
-    async () => 'received',
-  ),
-  showLocalPreview: vi.fn(() => true),
 };
 
 const authStub = {
@@ -47,8 +43,6 @@ describe('SettingsModalComponent', () => {
     pushStub.isCurrentDeviceRegistered.mockClear();
     pushStub.enable.mockClear();
     pushStub.unregisterCurrentDevice.mockClear();
-    pushStub.sendTestNotification.mockClear();
-    pushStub.showLocalPreview.mockClear();
     authStub.logout.mockClear();
 
     await TestBed.configureTestingModule({
@@ -105,38 +99,5 @@ describe('SettingsModalComponent', () => {
     expect(pushStub.unregisterCurrentDevice).toHaveBeenCalledOnce();
     expect(authStub.logout).toHaveBeenCalledOnce();
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/login']);
-  });
-
-  it('offers a local notification preview even before FCM registration', () => {
-    component.showNotificationPreview();
-    fixture.detectChanges();
-
-    expect(pushStub.showLocalPreview).toHaveBeenCalledWith(component.i18n.language());
-    expect(component.testNotificationState()).toBe('previewed');
-    expect(component.previewVisible()).toBe(true);
-    expect(fixture.nativeElement.querySelector('.notification-preview')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Local simulation');
-  });
-
-  it('sends an end-to-end test through the backend when the device is enabled', async () => {
-    component.pushState.set('enabled');
-
-    component.sendTestNotification();
-    await Promise.resolve();
-
-    expect(pushStub.sendTestNotification).toHaveBeenCalledWith(component.i18n.language());
-    expect(component.testNotificationState()).toBe('received');
-  });
-
-  it('explains when no real stored story is available for the test', async () => {
-    pushStub.sendTestNotification.mockResolvedValueOnce('no-news');
-    component.pushState.set('enabled');
-
-    component.sendTestNotification();
-    await Promise.resolve();
-    fixture.detectChanges();
-
-    expect(component.testNotificationState()).toBe('no-news');
-    expect(fixture.nativeElement.textContent).toContain('No stored company story');
   });
 });

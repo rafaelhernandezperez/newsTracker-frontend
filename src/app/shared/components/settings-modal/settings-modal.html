@@ -1,31 +1,4 @@
 <div class="settings-overlay" (click)="close.emit()">
-  @if (previewVisible()) {
-    <aside
-      class="notification-preview"
-      role="status"
-      aria-live="polite"
-      (click)="$event.stopPropagation()"
-    >
-      <div class="notification-preview-icon" aria-hidden="true">NT</div>
-      <div class="notification-preview-content">
-        <div class="notification-preview-meta">
-          <span>{{ i18n.t('settings.previewLabel') }}</span>
-          <span>{{ i18n.t('settings.previewNow') }}</span>
-        </div>
-        <p class="notification-preview-title">{{ i18n.t('settings.previewTitle') }}</p>
-        <p class="notification-preview-body">{{ i18n.t('settings.previewBody') }}</p>
-      </div>
-      <button
-        type="button"
-        class="notification-preview-close"
-        [attr.aria-label]="i18n.t('action.close')"
-        (click)="previewVisible.set(false)"
-      >
-        <span aria-hidden="true">&#215;</span>
-      </button>
-    </aside>
-  }
-
   <section
     class="settings-sheet"
     role="dialog"
@@ -111,42 +84,6 @@
               }
             }
           </button>
-        </div>
-
-        <div class="settings-test">
-          <p class="settings-test-copy">{{ i18n.t('settings.testDescription') }}</p>
-          <div class="settings-test-actions">
-            <button
-              type="button"
-              class="settings-secondary"
-              [disabled]="pushState() !== 'enabled' || testNotificationState() === 'sending'"
-              (click)="sendTestNotification()"
-            >
-              {{ i18n.t('settings.sendTest') }}
-            </button>
-            <button
-              type="button"
-              class="settings-secondary"
-              [disabled]="testNotificationState() === 'sending'"
-              (click)="showNotificationPreview()"
-            >
-              {{ i18n.t('settings.previewAlert') }}
-            </button>
-          </div>
-          @if (testNotificationMessage(); as message) {
-            <p
-              class="settings-test-result"
-              [class.is-error]="
-                testNotificationState() === 'failed' ||
-                testNotificationState() === 'no-device' ||
-                testNotificationState() === 'no-news'
-              "
-              role="status"
-              aria-live="polite"
-            >
-              {{ message }}
-            </p>
-          }
         </div>
       </section>
 

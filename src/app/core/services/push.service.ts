@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getMessaging, getToken, isSupported, onMessage, type Messaging } from 'firebase/messaging';
@@ -7,7 +7,6 @@ import { getFirebaseApp, firebaseVapidKey } from '../firebase/firebase.config';
 const STORED_FCM_TOKEN = 'nt.fcmToken';
 
 export type PushEnableResult = 'enabled' | 'denied' | 'dismissed' | 'unsupported' | 'failed';
-export type PushTestResult = 'received' | 'sent' | 'no-device' | 'no-news' | 'failed';
 
 @Injectable({ providedIn: 'root' })
 export class PushService {
@@ -17,7 +16,6 @@ export class PushService {
   private foregroundBound = false;
   private registeredToken: string | null = this.readStoredToken();
   private refreshPromise: Promise<PushEnableResult> | null = null;
-  private readonly testReceiptWaiters = new Set<(newsId: string) => void>();
 
   enable(): Promise<PushEnableResult> {
     if (!this.hasBrowserPushApis()) {
@@ -47,7 +45,7 @@ export class PushService {
     if (Notification.permission !== 'granted') {
       return Promise.resolve(Notification.permission === 'denied' ? 'denied' : 'dismissed');
     }
-    // Share concurrent refresh attempts so tests wait for the foreground listener.
+    // Share concurrent refresh attempts so repeat calls reuse a single registration.
     this.refreshPromise ??= this.registerAfterPermission(Promise.resolve('granted'), false).finally(
       () => {
         this.refreshPromise = null;
@@ -138,56 +136,6 @@ export class PushService {
     return Boolean(this.registeredToken ?? this.readStoredToken());
   }
 
-  async sendTestNotification(language: 'en' | 'es'): Promise<PushTestResult> {
-    // Attach the foreground listener before the backend sends the test notification.
-    const readiness = await this.refreshIfGranted();
-    if (readiness !== 'enabled') {
-      return readiness === 'dismissed' || readiness === 'denied' ? 'no-device' : 'failed';
-    }
-
-    const testId = this.createTestId();
-    const receipt = this.waitForTestReceipt(`push-test-${testId}`);
-    try {
-      await firstValueFrom(this.http.post('/api/devices/test', { language, testId }));
-      // Start the receipt timeout after sending; the registered waiter captures early arrivals.
-      receipt.startTimeout();
-      return (await receipt.promise) ? 'received' : 'sent';
-    } catch (error) {
-      receipt.cancel();
-      if (error instanceof HttpErrorResponse && error.status === 409) {
-        return error.error?.code === 'no-news' ? 'no-news' : 'no-device';
-      }
-      console.error('[push] test notification failed:', error);
-      return 'failed';
-    }
-  }
-
-  /** Preview native notification appearance without testing backend or FCM delivery. */
-  showLocalPreview(language: 'en' | 'es'): boolean {
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
-      return false;
-    }
-    try {
-      const spanish = language === 'es';
-      const notification = new Notification('Bank of America (BAC)', {
-        body: spanish
-          ? 'La SEC acusó a un exbanquero de Bank of America por filtraciones que presuntamente generaron 18,5 millones de dólares en beneficios ilegales.'
-          : 'The SEC charged a former Bank of America banker over tips that allegedly generated $18.5 million in illegal profit.',
-        icon: '/notification-icon.png',
-        tag: 'newstracker-thesis-preview',
-        requireInteraction: true,
-      });
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-      return true;
-    } catch (error) {
-      console.error('[push] local notification preview failed:', error);
-      return false;
-    }
-  }
-
   private readStoredToken(): string | null {
     try {
       return localStorage.getItem(STORED_FCM_TOKEN);
@@ -226,70 +174,11 @@ export class PushService {
         icon: '/notification-icon.png',
         data,
         tag: newsId ? `newstracker-${newsId}` : undefined,
-        // Keep synthetic test notifications visible until dismissed.
-        requireInteraction: newsId.startsWith('push-test-'),
       });
-      if (!displayed) {
-        return;
-      }
 
-      void displayed
-        .then(() => {
-          // Report receipt only after the browser accepts the persistent notification.
-          if (newsId.startsWith('push-test-')) {
-            for (const notifyReceipt of this.testReceiptWaiters) {
-              notifyReceipt(newsId);
-            }
-          }
-        })
-        .catch((error) => console.error('[push] foreground notification failed:', error));
+      void displayed?.catch((error) =>
+        console.error('[push] foreground notification failed:', error),
+      );
     });
-  }
-
-  private waitForTestReceipt(
-    expectedNewsId: string,
-    timeoutMs = 8_000,
-  ): {
-    promise: Promise<boolean>;
-    startTimeout: () => void;
-    cancel: () => void;
-  } {
-    let settled = false;
-    let finish!: (received: boolean) => void;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const promise = new Promise<boolean>((resolve) => {
-      finish = (received) => {
-        if (settled) return;
-        settled = true;
-        if (timeoutId !== null) clearTimeout(timeoutId);
-        this.testReceiptWaiters.delete(onReceipt);
-        resolve(received);
-      };
-    });
-    const onReceipt = (newsId: string) => {
-      if (newsId === expectedNewsId) {
-        finish(true);
-      }
-    };
-    this.testReceiptWaiters.add(onReceipt);
-
-    return {
-      promise,
-      startTimeout: () => {
-        if (!settled && timeoutId === null) {
-          timeoutId = setTimeout(() => finish(false), timeoutMs);
-        }
-      },
-      cancel: () => finish(false),
-    };
-  }
-
-  private createTestId(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-    // This fallback ID correlates tests and is not used for authentication.
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 18)}`;
   }
 }

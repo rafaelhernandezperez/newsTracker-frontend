@@ -30,7 +30,6 @@ messaging.onBackgroundMessage((payload) => {
     icon: '/notification-icon.png',
     data,
     tag: data.newsId ? `newstracker-${data.newsId}` : undefined,
-    requireInteraction: Boolean(data.newsId && data.newsId.startsWith('push-test-')),
   };
   return self.registration.showNotification(title, options);
 });

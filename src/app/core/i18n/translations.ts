@@ -104,26 +104,6 @@ const EN = {
   'settings.disableDelivery': 'Disable on this browser',
   'settings.deliveryEnabling': 'Enabling…',
   'settings.deliveryDisablingAction': 'Disabling…',
-  'settings.testDescription':
-    '“Send test push” uses a real recent story and verifies backend → Firebase → this browser.',
-  'settings.sendTest': 'Send test push',
-  'settings.previewAlert': 'Screenshot preview',
-  'settings.testSending': 'Sending the test through Firebase…',
-  'settings.testReceived':
-    'Verified: this browser received the Firebase push and created a persistent notification.',
-  'settings.testSent':
-    'Firebase accepted the test, but this open page did not confirm receipt within eight seconds.',
-  'settings.testNoDevice': 'No registered device was found. Enable browser notifications first.',
-  'settings.testNoNews':
-    'No stored company story is available yet. Let the news tracker run, then try again.',
-  'settings.testFailed': 'The end-to-end test failed. Check the API connection and try again.',
-  'settings.previewShown':
-    'On-screen simulation ready to capture. It is a visual preview, not proof of Firebase delivery.',
-  'settings.previewLabel': 'Local simulation · not delivery proof',
-  'settings.previewNow': 'Now',
-  'settings.previewTitle': 'NVDA: Strong outlook lifts shares',
-  'settings.previewBody':
-    'NVIDIA rises after stronger-than-expected guidance. Open NewsTracker to review the impact.',
   'settings.accountTitle': 'Account',
   'settings.signedInAs': 'Signed in as {email}',
   'settings.save': 'Save settings',
@@ -131,7 +111,6 @@ const EN = {
   'settings.closeAria': 'Close settings',
 
   'action.cancel': 'Cancel',
-  'action.close': 'Close',
   'action.back': 'Back',
   'action.next': 'Next',
 
@@ -290,28 +269,6 @@ const ES: Record<TranslationKey, string> = {
   'settings.disableDelivery': 'Desactivar en este navegador',
   'settings.deliveryEnabling': 'Activando…',
   'settings.deliveryDisablingAction': 'Desactivando…',
-  'settings.testDescription':
-    '«Enviar push de prueba» usa una noticia real reciente y comprueba servidor → Firebase → este navegador.',
-  'settings.sendTest': 'Enviar push de prueba',
-  'settings.previewAlert': 'Vista para captura',
-  'settings.testSending': 'Enviando la prueba mediante Firebase…',
-  'settings.testReceived':
-    'Verificado: este navegador recibió el push de Firebase y creó una notificación persistente.',
-  'settings.testSent':
-    'Firebase aceptó la prueba, pero esta página abierta no confirmó la recepción en ocho segundos.',
-  'settings.testNoDevice':
-    'No se encontró ningún dispositivo registrado. Activa primero las notificaciones del navegador.',
-  'settings.testNoNews':
-    'Aún no hay noticias de empresas guardadas. Espera a que se ejecute el rastreador y vuelve a intentarlo.',
-  'settings.testFailed':
-    'La prueba de extremo a extremo falló. Comprueba la conexión con la API y vuelve a intentarlo.',
-  'settings.previewShown':
-    'La simulación en pantalla está lista para capturar. Es una muestra visual, no una prueba de entrega de Firebase.',
-  'settings.previewLabel': 'Simulación local · no prueba la entrega',
-  'settings.previewNow': 'Ahora',
-  'settings.previewTitle': 'NVDA: Las buenas previsiones impulsan la acción',
-  'settings.previewBody':
-    'NVIDIA sube tras publicar previsiones mejores de lo esperado. Abre NewsTracker para revisar el impacto.',
   'settings.accountTitle': 'Cuenta',
   'settings.signedInAs': 'Sesión iniciada como {email}',
   'settings.save': 'Guardar ajustes',
@@ -320,7 +277,6 @@ const ES: Record<TranslationKey, string> = {
   'settings.closeAria': 'Cerrar ajustes',
 
   'action.cancel': 'Cancelar',
-  'action.close': 'Cerrar',
   'action.back': 'Atrás',
   'action.next': 'Siguiente',
 
